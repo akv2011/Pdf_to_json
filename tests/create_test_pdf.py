@@ -32,9 +32,9 @@ if __name__ == "__main__":
     
     try:
         create_simple_test_pdf(str(test_pdf_path))
-        print(f"✅ Created test PDF: {test_pdf_path}")
+        print(f"Created test PDF: {test_pdf_path}")
     except ImportError:
-        print("⚠️  reportlab not available, creating minimal PDF manually")
+        print("  reportlab not available, creating minimal PDF manually")
         
         # Create a minimal PDF file manually
         minimal_pdf_content = b"""%PDF-1.4
@@ -94,4 +94,4 @@ startxref
         with open(test_pdf_path, 'wb') as f:
             f.write(minimal_pdf_content)
         
-        print(f"✅ Created minimal test PDF: {test_pdf_path}")
+        print(f" Created minimal test PDF: {test_pdf_path}")

@@ -115,9 +115,9 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
         except Exception as e:
             if "password" in str(e).lower() or "encrypted" in str(e).lower():
                 if not extractor_config.password:
-                    click.echo("❌ PDF appears to be password-protected. Use --password option.", err=True)
+                    click.echo(" PDF appears to be password-protected. Use --password option.", err=True)
                 else:
-                    click.echo(f"❌ Invalid password or encryption error: {e}", err=True)
+                    click.echo(f" Invalid password or encryption error: {e}", err=True)
                 sys.exit(1)
             else:
                 raise
@@ -226,7 +226,7 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
             with open(output, 'w', encoding='utf-8') as f:
                 json.dump(result, f, indent=2, ensure_ascii=False)
         
-        click.echo(f"✅ Extraction complete! Saved to: {output}")
+        click.echo(f" Extraction complete! Saved to: {output}")
         
         pages = len(result.get('pages', []))
         processing_time = result.get('processing_time', 0)
@@ -242,7 +242,7 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
         })
         
         if verbose:
-            click.echo(f"📄 Processed {pages} pages in {processing_time:.2f}s")
+            click.echo(f" Processed {pages} pages in {processing_time:.2f}s")
             
             if extractor_config.format == 'hierarchical':
                 try:
@@ -252,7 +252,7 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
                     doc = structured_data.get('document', {})
                     summary = doc.get('summary', {})
                     
-                    click.echo("📊 Structured content summary:")
+                    click.echo(" Structured content summary:")
                     click.echo(f"   Document title: {doc.get('title', 'None')}")
                     click.echo(f"   Total sections: {summary.get('total_sections', 0)}")
                     click.echo(f"   Content types: {summary.get('content_types', {})}")
@@ -262,7 +262,7 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
                         click.echo(f"⚠ Could not read structured summary: {e}")
             
             if extractor_config.validate_schema and extractor_config.format == 'hierarchical':
-                click.echo("✅ Schema validation enabled")
+                click.echo(" Schema validation enabled")
             
     except Exception as e:
         click.echo(f"❌ Error: {str(e)}", err=True)
@@ -288,14 +288,14 @@ def init_config(output: Path):
             click.confirm(f"Configuration file '{output}' already exists. Overwrite?", abort=True)
         
         ConfigManager.save_example_config(output)
-        click.echo(f"✅ Configuration file created: {output}")
+        click.echo(f"Configuration file created: {output}")
         click.echo("\nYou can now:")
         click.echo(f"1. Edit {output} to customize default settings")
         click.echo(f"2. Use --config {output} with the extract command")
         click.echo("3. CLI options will override config file settings")
         
     except Exception as e:
-        click.echo(f"❌ Error creating configuration file: {e}", err=True)
+        click.echo(f" Error creating configuration file: {e}", err=True)
         sys.exit(1)
 
 
@@ -309,7 +309,7 @@ def info(pdf_path: Path):
         
         info_data = extractor.get_pdf_info(pdf_path)
         
-        click.echo("📋 PDF Information:")
+        click.echo(" PDF Information:")
         click.echo(f"  File: {pdf_path}")
         click.echo(f"  Pages: {info_data['page_count']}")
         click.echo(f"  File size: {info_data['file_size_mb']:.2f} MB")
@@ -322,7 +322,7 @@ def info(pdf_path: Path):
                     click.echo(f"    {key}: {value}")
                     
     except Exception as e:
-        click.echo(f"❌ Error: {str(e)}", err=True)
+        click.echo(f" Error: {str(e)}", err=True)
         sys.exit(1)
 
 

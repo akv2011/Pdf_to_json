@@ -52,8 +52,8 @@ class TestRealPDFExtraction:
         assert isinstance(metadata, dict)
         assert 'creator' in metadata
         
-        print(f"✅ Successfully extracted {len(result['pages'])} pages")
-        print(f"📄 Processing time: {result['processing_time']:.3f} seconds")
+        print(f"Successfully extracted {len(result['pages'])} pages")
+        print(f" Processing time: {result['processing_time']:.3f} seconds")
 
     def test_get_pdf_info_real(self, sample_pdf_path):
         """Test PDF info extraction with real file."""
@@ -74,7 +74,7 @@ class TestRealPDFExtraction:
         assert info['file_size_mb'] > 0
         assert isinstance(info['is_encrypted'], bool)
         
-        print(f"📋 PDF Info: {info['page_count']} pages, {info['file_size_mb']:.2f} MB")
+        print(f" PDF Info: {info['page_count']} pages, {info['file_size_mb']:.2f} MB")
 
     def test_extract_to_json_file(self, sample_pdf_path, tmp_path):
         """Test extraction and saving to JSON file."""
@@ -101,4 +101,4 @@ class TestRealPDFExtraction:
             loaded_result = json.load(f)
         
         assert loaded_result == result
-        print(f"💾 Successfully saved to JSON: {output_file.stat().st_size} bytes")
+        print(f" Successfully saved to JSON: {output_file.stat().st_size} bytes")

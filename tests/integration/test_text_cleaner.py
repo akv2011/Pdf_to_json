@@ -275,8 +275,8 @@ class TestTextCleaner:
             # Should have same number of pages
             assert len(cleaned_pages) == len(pages)
             
-            print(f"✅ Successfully processed {len(pages)} pages")
-            print(f"✅ Detected {report['artifacts_detected']} artifacts")
+            print(f"Successfully processed {len(pages)} pages")
+            print(f" Detected {report['artifacts_detected']} artifacts")
             
         except Exception as e:
             pytest.skip(f"Could not process test PDF: {e}")
@@ -306,14 +306,14 @@ if __name__ == "__main__":
     for test_name, test_func in tests:
         try:
             test_func()
-            print(f"✅ {test_name}")
+            print(f" {test_name}")
             passed += 1
         except Exception as e:
-            print(f"❌ {test_name}: {e}")
+            print(f" {test_name}: {e}")
     
     print(f"\nIntegration Tests: {passed}/{total} passed")
     
     if passed == total:
-        print("🎉 All integration tests passed!")
+        print(" All integration tests passed!")
     else:
-        print("⚠️  Some integration tests failed.")
+        print("  Some integration tests failed.")
