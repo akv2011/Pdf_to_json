@@ -12,6 +12,7 @@ from .extractor import PDFStructureExtractor
 from .models import ExtractionConfig
 from .json_builder import JSONBuilder
 from .config import load_config_for_cli
+from .logging_utils import configure_logging, get_logger
 
 
 @click.group()
@@ -56,10 +57,23 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
     This command processes PDF files and extracts their content in various structured formats.
     Use different modes for different levels of detail and processing speed.
     """
+    # Configure logging based on verbosity level
+    configure_logging(verbose=verbose, json_format=not verbose)  # Use JSON format unless verbose
+    logger = get_logger('pdf_extractor.cli')
+    
     if verbose:
         click.echo(f"Processing PDF: {input_path}")
         click.echo(f"Extraction mode: {mode}")
         click.echo(f"Output format: {format}")
+    
+    logger.info("CLI extraction started", extra={
+        'extra_data': {
+            'input_path': str(input_path),
+            'mode': mode,
+            'format': format,
+            'verbose': verbose
+        }
+    })
     
     # Determine output path based on format
     if output is None:
@@ -252,10 +266,22 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
         
         click.echo(f"✅ Extraction complete! Saved to: {output}")
         
+        # Log successful completion
+        pages = len(result.get('pages', []))
+        processing_time = result.get('processing_time', 0)
+        logger.info("CLI extraction completed successfully", extra={
+            'extra_data': {
+                'input_path': str(input_path),
+                'output_path': str(output),
+                'pages_processed': pages,
+                'processing_time_seconds': processing_time,
+                'format': format,
+                'mode': mode
+            }
+        })
+        
         # Show summary
         if verbose:
-            pages = len(result.get('pages', []))
-            processing_time = result.get('processing_time', 0)
             click.echo(f"📄 Processed {pages} pages in {processing_time:.2f}s")
             
             if extractor_config.format == 'hierarchical':

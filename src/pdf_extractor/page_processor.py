@@ -14,6 +14,7 @@ from .models import (
     TextBlock, ContentType, ImageInfo
 )
 from .chart_extractor import ChartExtractor
+from .logging_utils import get_logger
 
 
 class PageProcessor:
@@ -40,42 +41,82 @@ class PageProcessor:
         Returns:
             PageContent object with detailed structure information
         """
-        # Get structured text data with proper sorting for reading order
-        text_dict = page.get_text("dict", sort=True)
+        logger = get_logger('pdf_extractor.page_processor')
         
-        # Create page content object
-        page_content = PageContent(
-            page_number=page_number,
-            page_width=text_dict.get('width', page.rect.width),
-            page_height=text_dict.get('height', page.rect.height),
-            rotation=page.rotation
-        )
-        
-        # Store raw data if debugging
-        if self.debug:
-            page_content.raw_text_data = text_dict
-        
-        # Process all blocks in the page
-        content_blocks = []
-        for block_data in text_dict.get('blocks', []):
-            content_block = self._process_block(block_data)
-            if content_block:
-                content_blocks.append(content_block)
-        
-        page_content.content_blocks = content_blocks
-        
-        # Extract images if enabled
-        if self.extract_images and self.chart_extractor:
-            # First, we need to create text blocks for caption detection
-            text_blocks = self._create_text_blocks_for_caption_detection(content_blocks)
+        try:
+            # Get structured text data with proper sorting for reading order
+            try:
+                text_dict = page.get_text("dict", sort=True)
+                logger.debug(f"Retrieved text dictionary for page {page_number}")
+            except Exception as e:
+                logger.warning(f"Failed to get text dict for page {page_number}: {str(e)}")
+                # Create minimal text_dict structure for fallback
+                text_dict = {
+                    'width': page.rect.width,
+                    'height': page.rect.height,
+                    'blocks': []
+                }
             
-            # Extract images with caption detection
-            images = self.chart_extractor.extract_images_from_page(
-                page, page_number, text_blocks
+            # Create page content object
+            page_content = PageContent(
+                page_number=page_number,
+                page_width=text_dict.get('width', page.rect.width),
+                page_height=text_dict.get('height', page.rect.height),
+                rotation=getattr(page, 'rotation', 0)
             )
-            page_content.images = images
-        
-        return page_content
+            
+            # Store raw data if debugging
+            if self.debug:
+                page_content.raw_text_data = text_dict
+            
+            # Process all blocks in the page with error handling for individual blocks
+            content_blocks = []
+            for block_idx, block_data in enumerate(text_dict.get('blocks', [])):
+                try:
+                    content_block = self._process_block(block_data)
+                    if content_block:
+                        content_blocks.append(content_block)
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to process block {block_idx} on page {page_number}: {str(e)}"
+                    )
+                    # Continue processing other blocks
+                    continue
+            
+            page_content.content_blocks = content_blocks
+            
+            # Extract images if enabled with error handling
+            if self.extract_images and self.chart_extractor:
+                try:
+                    # First, we need to create text blocks for caption detection
+                    text_blocks = self._create_text_blocks_for_caption_detection(content_blocks)
+                    
+                    # Extract images with caption detection
+                    images = self.chart_extractor.extract_images_from_page(
+                        page, page_number, text_blocks
+                    )
+                    page_content.images = images
+                    logger.debug(f"Extracted {len(images)} images from page {page_number}")
+                    
+                except Exception as e:
+                    logger.warning(f"Failed to extract images from page {page_number}: {str(e)}")
+                    # Continue without images rather than failing the entire page
+                    page_content.images = []
+            
+            logger.debug(f"Successfully processed page {page_number} with {len(content_blocks)} content blocks")
+            return page_content
+            
+        except Exception as e:
+            logger.error(f"Critical error processing page {page_number}: {str(e)}")
+            # Return minimal page content rather than failing entirely
+            return PageContent(
+                page_number=page_number,
+                page_width=page.rect.width if hasattr(page, 'rect') else 0,
+                page_height=page.rect.height if hasattr(page, 'rect') else 0,
+                rotation=0,
+                content_blocks=[],
+                images=[]
+            )
     
     def _create_text_blocks_for_caption_detection(
         self, 

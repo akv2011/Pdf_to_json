@@ -15,8 +15,9 @@ import fitz  # PyMuPDF for page analysis
 
 from .table_wrappers import PdfplumberWrapper, CamelotWrapper, TabulaWrapper
 from .table_normalizer import TableNormalizer
+from .logging_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -107,46 +108,78 @@ class TableExtractor:
         try:
             # Step 1: Analyze page structure if enabled
             if self.enable_pre_analysis:
-                analysis = self._analyze_page_structure(page_num)
-                logger.info(f"Page {page_num} analysis: {analysis.recommended_strategy} "
-                           f"(confidence: {analysis.confidence:.2f})")
+                try:
+                    analysis = self._analyze_page_structure(page_num)
+                    logger.debug(f"Page {page_num} analysis: {analysis.recommended_strategy} "
+                               f"(confidence: {analysis.confidence:.2f})")
+                except Exception as e:
+                    logger.warning(f"Page structure analysis failed for page {page_num}: {str(e)}")
+                    analysis = PageAnalysis(page_num=page_num, recommended_strategy="ruled")
             else:
                 analysis = PageAnalysis(page_num=page_num, recommended_strategy="ruled")
             
             # Step 2: Choose extraction strategy based on analysis
-            if analysis.recommended_strategy == "ruled":
-                success, tables, method = self._extract_ruled_tables(page_num)
-            else:
-                success, tables, method = self._extract_unruled_tables(page_num)
+            success = False
+            tables = []
+            method = "none"
+            
+            try:
+                if analysis.recommended_strategy == "ruled":
+                    success, tables, method = self._extract_ruled_tables(page_num)
+                else:
+                    success, tables, method = self._extract_unruled_tables(page_num)
+            except Exception as e:
+                logger.warning(f"Primary table extraction strategy failed for page {page_num}: {str(e)}")
+                success = False
             
             # Step 3: If primary strategy fails and fallback is enabled, try alternative
             if not success and self.fallback_on_failure:
-                logger.info(f"Primary strategy failed for page {page_num}, trying fallback")
-                if analysis.recommended_strategy == "ruled":
-                    success, tables, method = self._extract_unruled_tables(page_num)
-                else:
-                    success, tables, method = self._extract_ruled_tables(page_num)
-                method = f"fallback-{method}"
+                try:
+                    logger.debug(f"Primary strategy failed for page {page_num}, trying fallback")
+                    if analysis.recommended_strategy == "ruled":
+                        success, tables, method = self._extract_unruled_tables(page_num)
+                    else:
+                        success, tables, method = self._extract_ruled_tables(page_num)
+                    method = f"fallback-{method}"
+                except Exception as e:
+                    logger.warning(f"Fallback table extraction failed for page {page_num}: {str(e)}")
+                    success = False
             
             # Step 4: Validate and score the results
             if success and tables:
-                validated_tables = []
-                quality_scores = []
-                
-                for table in tables:
-                    analysis_result = self.normalizer.analyze_table_structure(table)
-                    quality_score = analysis_result.get("estimated_quality", 0.0)
+                try:
+                    validated_tables = []
+                    quality_scores = []
                     
-                    if analysis_result["valid"] and quality_score >= self.min_quality_score:
-                        validated_tables.append(table)
-                        quality_scores.append(quality_score)
+                    for table_idx, table in enumerate(tables):
+                        try:
+                            analysis_result = self.normalizer.analyze_table_structure(table)
+                            quality_score = analysis_result.get("estimated_quality", 0.0)
+                            
+                            if analysis_result["valid"] and quality_score >= self.min_quality_score:
+                                validated_tables.append(table)
+                                quality_scores.append(quality_score)
+                            else:
+                                logger.debug(f"Table {table_idx} rejected: quality={quality_score:.2f}, "
+                                           f"reason={analysis_result.get('reason', 'low quality')}")
+                        except Exception as e:
+                            logger.warning(f"Table validation failed for table {table_idx} on page {page_num}: {str(e)}")
+                            continue
+                    
+                    result.tables = validated_tables
+                    result.quality_scores = quality_scores
+                    result.method_used = method
+                    result.success = len(validated_tables) > 0
+                    
+                    if result.success:
+                        logger.debug(f"Successfully extracted {len(validated_tables)} tables from page {page_num}")
                     else:
-                        logger.debug(f"Table rejected: quality={quality_score:.2f}, "
-                                   f"reason={analysis_result.get('reason', 'low quality')}")
-                
-                result.tables = validated_tables
-                result.quality_scores = quality_scores
-                result.method_used = method
+                        logger.debug(f"No valid tables found on page {page_num} after validation")
+                        
+                except Exception as e:
+                    logger.warning(f"Table validation process failed for page {page_num}: {str(e)}")
+                    result.success = False
+                    result.error_message = f"Validation failed: {str(e)}"
                 result.success = len(validated_tables) > 0
                 
                 if result.success:
