@@ -3,27 +3,32 @@ Page-level content analysis and structure extraction.
 
 This module implements detailed page processing using PyMuPDF's get_text('dict') 
 method to extract content blocks with precise bounding boxes, font information,
-and spatial layout data.
+and spatial layout data. It also handles image extraction and caption detection.
 """
 
 from typing import List, Dict, Any, Tuple
 import fitz  # PyMuPDF
 
 from .models import (
-    PageContent, ContentBlock, TextLine, TextSpan, FontInfo, BoundingBox
+    PageContent, ContentBlock, TextLine, TextSpan, FontInfo, BoundingBox,
+    TextBlock, ContentType, ImageInfo
 )
+from .chart_extractor import ChartExtractor
 
 
 class PageProcessor:
     """Handles detailed page-level content extraction and analysis."""
     
-    def __init__(self, debug: bool = False):
+    def __init__(self, debug: bool = False, extract_images: bool = False):
         """Initialize the page processor.
         
         Args:
             debug: If True, store raw text data for debugging purposes
+            extract_images: If True, extract images and charts from pages
         """
         self.debug = debug
+        self.extract_images = extract_images
+        self.chart_extractor = ChartExtractor(debug=debug) if extract_images else None
     
     def process_page(self, page: fitz.Page, page_number: int) -> PageContent:
         """Process a single page to extract detailed content structure.
@@ -59,7 +64,59 @@ class PageProcessor:
         
         page_content.content_blocks = content_blocks
         
+        # Extract images if enabled
+        if self.extract_images and self.chart_extractor:
+            # First, we need to create text blocks for caption detection
+            text_blocks = self._create_text_blocks_for_caption_detection(content_blocks)
+            
+            # Extract images with caption detection
+            images = self.chart_extractor.extract_images_from_page(
+                page, page_number, text_blocks
+            )
+            page_content.images = images
+        
         return page_content
+    
+    def _create_text_blocks_for_caption_detection(
+        self, 
+        content_blocks: List[ContentBlock]
+    ) -> List[TextBlock]:
+        """Create TextBlock objects from ContentBlocks for caption detection.
+        
+        Args:
+            content_blocks: List of content blocks from page processing
+            
+        Returns:
+            List of TextBlock objects suitable for caption detection
+        """
+        text_blocks = []
+        
+        for block in content_blocks:
+            if block.is_text_block and block.text.strip():
+                # Extract font information from the first span if available
+                font_info = None
+                if block.lines and block.lines[0].spans:
+                    first_span = block.lines[0].spans[0]
+                    font_info = {
+                        'font_name': first_span.font_info.font_name,
+                        'font_size': first_span.font_info.font_size,
+                        'is_bold': first_span.font_info.is_bold,
+                        'is_italic': first_span.font_info.is_italic,
+                        'is_superscript': first_span.font_info.is_superscript,
+                        'flags': first_span.font_info.flags,
+                        'color': first_span.font_info.color
+                    }
+                
+                text_block = TextBlock(
+                    text=block.text,
+                    content_type=ContentType.TEXT,  # Default to text for caption detection
+                    bbox=block.bbox,
+                    font_info=font_info
+                )
+                
+                text_blocks.append(text_block)
+        
+        return text_blocks
     
     def _process_block(self, block_data: Dict[str, Any]) -> ContentBlock:
         """Process a single block from the text dictionary.

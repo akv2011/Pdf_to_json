@@ -12,10 +12,41 @@ class ContentType(Enum):
     TEXT = "text"
     TABLE = "table"
     IMAGE = "image"
-    HEADER = "header"
+    HEADER = "header"  # Generic header (for backward compatibility)
+    HEADER_1 = "header_1"  # H1 - Top level headers
+    HEADER_2 = "header_2"  # H2 - Section headers
+    HEADER_3 = "header_3"  # H3 - Subsection headers
+    HEADER_4 = "header_4"  # H4 - Minor headers
+    HEADER_5 = "header_5"  # H5 - Minor headers
+    HEADER_6 = "header_6"  # H6 - Minor headers
     FOOTER = "footer"
     LIST = "list"
     PARAGRAPH = "paragraph"
+    
+    def is_header_type(self) -> bool:
+        """Check if this content type is any kind of header."""
+        return self in {
+            ContentType.HEADER,
+            ContentType.HEADER_1,
+            ContentType.HEADER_2,
+            ContentType.HEADER_3,
+            ContentType.HEADER_4,
+            ContentType.HEADER_5,
+            ContentType.HEADER_6
+        }
+    
+    def get_header_level(self) -> Optional[int]:
+        """Get the header level number if this is a header type."""
+        header_map = {
+            ContentType.HEADER_1: 1,
+            ContentType.HEADER_2: 2,
+            ContentType.HEADER_3: 3,
+            ContentType.HEADER_4: 4,
+            ContentType.HEADER_5: 5,
+            ContentType.HEADER_6: 6,
+            ContentType.HEADER: 1,  # Default to H1 for generic header
+        }
+        return header_map.get(self)
 
 
 @dataclass
@@ -197,6 +228,33 @@ class ImageInfo:
     format: Optional[str] = None
     size_bytes: Optional[int] = None
     description: Optional[str] = None
+    page_number: Optional[int] = None
+    index_on_page: Optional[int] = None
+    xref: Optional[int] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert image info to dictionary for JSON serialization."""
+        return {
+            "image_id": self.image_id,
+            "width": self.width,
+            "height": self.height,
+            "format": self.format,
+            "size_bytes": self.size_bytes,
+            "description": self.description,
+            "page_number": self.page_number,
+            "index_on_page": self.index_on_page,
+            "xref": self.xref,
+            "bbox": {
+                "x0": self.bbox.x0,
+                "y0": self.bbox.y0,
+                "x1": self.bbox.x1,
+                "y1": self.bbox.y1,
+                "width": self.bbox.width,
+                "height": self.bbox.height
+            } if self.bbox else None,
+            "metadata": self.metadata
+        }
 
 
 @dataclass
@@ -385,3 +443,157 @@ class UnsupportedPDFError(ExtractionError):
 class PasswordRequiredError(ExtractionError):
     """Raised when PDF requires a password."""
     pass
+
+
+class HeaderLevel(Enum):
+    """Header level hierarchy for document structure."""
+    H1 = 1
+    H2 = 2
+    H3 = 3
+    H4 = 4
+    H5 = 5
+    H6 = 6
+    
+    def __str__(self):
+        return f"H{self.value}"
+    
+    @classmethod
+    def from_int(cls, level: int) -> 'HeaderLevel':
+        """Create HeaderLevel from integer."""
+        if 1 <= level <= 6:
+            return cls(level)
+        raise ValueError(f"Header level must be between 1 and 6, got {level}")
+
+
+@dataclass
+class SectionNode:
+    """Represents a hierarchical section in the document structure."""
+    title: str
+    level: HeaderLevel
+    content_blocks: List[Union[TextBlock, 'Table', 'ImageInfo']] = field(default_factory=list)
+    subsections: List['SectionNode'] = field(default_factory=list)
+    bbox: Optional[BoundingBox] = None
+    page_number: Optional[int] = None
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    
+    def add_content(self, content: Union[TextBlock, 'Table', 'ImageInfo']) -> None:
+        """Add a content block to this section."""
+        self.content_blocks.append(content)
+    
+    def add_subsection(self, subsection: 'SectionNode') -> None:
+        """Add a subsection to this section."""
+        self.subsections.append(subsection)
+    
+    def get_text_content(self) -> str:
+        """Get all text content from this section and subsections."""
+        text_parts = []
+        
+        # Add content from this section
+        for content in self.content_blocks:
+            if hasattr(content, 'text'):
+                text_parts.append(content.text)
+        
+        # Add content from subsections
+        for subsection in self.subsections:
+            text_parts.append(subsection.get_text_content())
+        
+        return '\n'.join(text_parts)
+    
+    def count_total_blocks(self) -> int:
+        """Count total content blocks including subsections."""
+        count = len(self.content_blocks)
+        for subsection in self.subsections:
+            count += subsection.count_total_blocks()
+        return count
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert section to dictionary for JSON serialization."""
+        return {
+            "title": self.title,
+            "level": self.level.value,
+            "page_number": self.page_number,
+            "bbox": {
+                "x0": self.bbox.x0,
+                "y0": self.bbox.y0,
+                "x1": self.bbox.x1,
+                "y1": self.bbox.y1
+            } if self.bbox else None,
+            "content_blocks": [
+                {
+                    "text": block.text,
+                    "content_type": block.content_type.value,
+                    "bbox": {
+                        "x0": block.bbox.x0,
+                        "y0": block.bbox.y0,
+                        "x1": block.bbox.x1,
+                        "y1": block.bbox.y1
+                    } if block.bbox else None,
+                    "confidence": getattr(block, 'confidence', 1.0)
+                } if hasattr(block, 'text') else block.to_dict()
+                for block in self.content_blocks
+            ],
+            "subsections": [subsection.to_dict() for subsection in self.subsections],
+            "metadata": self.metadata
+        }
+
+
+@dataclass
+class DocumentStructure:
+    """Represents the complete hierarchical structure of a document."""
+    title: Optional[str] = None
+    sections: List[SectionNode] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+    total_pages: int = 0
+    processing_time: Optional[float] = None
+    
+    def add_section(self, section: SectionNode) -> None:
+        """Add a top-level section to the document."""
+        self.sections.append(section)
+    
+    def get_section_by_title(self, title: str) -> Optional[SectionNode]:
+        """Find a section by title (recursive search)."""
+        def search_sections(sections: List[SectionNode]) -> Optional[SectionNode]:
+            for section in sections:
+                if section.title.lower() == title.lower():
+                    return section
+                # Search in subsections
+                result = search_sections(section.subsections)
+                if result:
+                    return result
+            return None
+        
+        return search_sections(self.sections)
+    
+    def get_all_sections(self) -> List[SectionNode]:
+        """Get all sections flattened (including subsections)."""
+        all_sections = []
+        
+        def collect_sections(sections: List[SectionNode]):
+            for section in sections:
+                all_sections.append(section)
+                collect_sections(section.subsections)
+        
+        collect_sections(self.sections)
+        return all_sections
+    
+    def count_total_content_blocks(self) -> int:
+        """Count all content blocks in the document."""
+        total = 0
+        for section in self.sections:
+            total += section.count_total_blocks()
+        return total
+    
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert document structure to dictionary for JSON serialization."""
+        return {
+            "title": self.title,
+            "total_pages": self.total_pages,
+            "processing_time": self.processing_time,
+            "sections": [section.to_dict() for section in self.sections],
+            "metadata": self.metadata,
+            "summary": {
+                "total_sections": len(self.get_all_sections()),
+                "top_level_sections": len(self.sections),
+                "total_content_blocks": self.count_total_content_blocks()
+            }
+        }

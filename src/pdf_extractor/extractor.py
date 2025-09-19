@@ -20,7 +20,10 @@ class PDFStructureExtractor:
     def __init__(self, config: ExtractionConfig = None):
         """Initialize the extractor with configuration."""
         self.config = config or ExtractionConfig()
-        self.page_processor = PageProcessor(debug=self.config.verbose)
+        self.page_processor = PageProcessor(
+            debug=self.config.verbose,
+            extract_images=self.config.extract_images
+        )
     
     def extract(self, pdf_path: Path) -> Dict[str, Any]:
         """Extract structured content from a PDF file.

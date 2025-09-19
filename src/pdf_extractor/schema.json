@@ -1,0 +1,269 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "PDF Extraction Result Schema",
+  "description": "Schema for structured PDF extraction output with hierarchical document organization",
+  "type": "object",
+  "required": ["document", "metadata", "extraction_info"],
+  "properties": {
+    "document": {
+      "type": "object",
+      "description": "Main document structure with hierarchical content organization",
+      "required": ["title", "content"],
+      "properties": {
+        "title": {
+          "type": ["string", "null"],
+          "description": "Document title extracted from metadata or first header"
+        },
+        "content": {
+          "type": "array",
+          "description": "Hierarchical content structure with sections and subsections",
+          "items": {
+            "$ref": "#/definitions/ContentItem"
+          }
+        },
+        "summary": {
+          "type": "object",
+          "description": "Document summary statistics",
+          "properties": {
+            "total_sections": { "type": "integer", "minimum": 0 },
+            "total_pages": { "type": "integer", "minimum": 1 },
+            "total_content_blocks": { "type": "integer", "minimum": 0 },
+            "content_types": {
+              "type": "object",
+              "description": "Count of each content type",
+              "properties": {
+                "headers": { "type": "integer", "minimum": 0 },
+                "paragraphs": { "type": "integer", "minimum": 0 },
+                "tables": { "type": "integer", "minimum": 0 },
+                "images": { "type": "integer", "minimum": 0 },
+                "lists": { "type": "integer", "minimum": 0 }
+              }
+            }
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "PDF document metadata",
+      "properties": {
+        "file_path": { "type": "string" },
+        "title": { "type": ["string", "null"] },
+        "author": { "type": ["string", "null"] },
+        "subject": { "type": ["string", "null"] },
+        "creator": { "type": ["string", "null"] },
+        "producer": { "type": ["string", "null"] },
+        "creation_date": { "type": ["string", "null"] },
+        "modification_date": { "type": ["string", "null"] },
+        "keywords": { "type": ["string", "null"] },
+        "format": { "type": ["string", "null"] },
+        "encrypted": { "type": "boolean" },
+        "page_count": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "extraction_info": {
+      "type": "object",
+      "description": "Information about the extraction process",
+      "required": ["processing_time", "extraction_config"],
+      "properties": {
+        "processing_time": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Time taken for extraction in seconds"
+        },
+        "extraction_config": {
+          "type": "object",
+          "description": "Configuration used for extraction",
+          "properties": {
+            "extract_tables": { "type": "boolean" },
+            "extract_images": { "type": "boolean" },
+            "preserve_layout": { "type": "boolean" },
+            "table_extraction_methods": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "errors": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Any errors encountered during extraction"
+        },
+        "warnings": {
+          "type": "array", 
+          "items": { "type": "string" },
+          "description": "Any warnings generated during extraction"
+        }
+      }
+    }
+  },
+  "definitions": {
+    "ContentItem": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["section", "header", "paragraph", "table", "image", "list"]
+        },
+        "content": {
+          "description": "Content varies by type"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Additional metadata for the content item"
+        }
+      },
+      "oneOf": [
+        { "$ref": "#/definitions/Section" },
+        { "$ref": "#/definitions/Header" },
+        { "$ref": "#/definitions/Paragraph" },
+        { "$ref": "#/definitions/Table" },
+        { "$ref": "#/definitions/Image" },
+        { "$ref": "#/definitions/List" }
+      ]
+    },
+    "Section": {
+      "type": "object",
+      "required": ["type", "title", "content"],
+      "properties": {
+        "type": { "const": "section" },
+        "title": { "type": "string" },
+        "level": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "content": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ContentItem" }
+        },
+        "page_number": { "type": ["integer", "null"] },
+        "bbox": { "$ref": "#/definitions/BoundingBox" },
+        "metadata": { "type": "object" }
+      }
+    },
+    "Header": {
+      "type": "object",
+      "required": ["type", "text", "level"],
+      "properties": {
+        "type": { "const": "header" },
+        "text": { "type": "string" },
+        "level": { "type": "integer", "minimum": 1, "maximum": 6 },
+        "page_number": { "type": ["integer", "null"] },
+        "bbox": { "$ref": "#/definitions/BoundingBox" },
+        "font_info": { "$ref": "#/definitions/FontInfo" },
+        "metadata": { "type": "object" }
+      }
+    },
+    "Paragraph": {
+      "type": "object",
+      "required": ["type", "text"],
+      "properties": {
+        "type": { "const": "paragraph" },
+        "text": { "type": "string" },
+        "page_number": { "type": ["integer", "null"] },
+        "bbox": { "$ref": "#/definitions/BoundingBox" },
+        "font_info": { "$ref": "#/definitions/FontInfo" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "metadata": { "type": "object" }
+      }
+    },
+    "Table": {
+      "type": "object",
+      "required": ["type", "data"],
+      "properties": {
+        "type": { "const": "table" },
+        "data": {
+          "type": "array",
+          "description": "2D array representing table data",
+          "items": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "headers": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Table column headers if available"
+        },
+        "rows": { "type": "integer", "minimum": 1 },
+        "cols": { "type": "integer", "minimum": 1 },
+        "page_number": { "type": ["integer", "null"] },
+        "bbox": { "$ref": "#/definitions/BoundingBox" },
+        "extraction_method": { "type": "string" },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "metadata": { "type": "object" }
+      }
+    },
+    "Image": {
+      "type": "object",
+      "required": ["type", "image_id"],
+      "properties": {
+        "type": { "const": "image" },
+        "image_id": { "type": "string" },
+        "description": { 
+          "type": ["string", "null"],
+          "description": "Caption or description of the image"
+        },
+        "width": { "type": ["integer", "null"] },
+        "height": { "type": ["integer", "null"] },
+        "format": { "type": ["string", "null"] },
+        "size_bytes": { "type": ["integer", "null"] },
+        "page_number": { "type": ["integer", "null"] },
+        "bbox": { "$ref": "#/definitions/BoundingBox" },
+        "metadata": { "type": "object" }
+      }
+    },
+    "List": {
+      "type": "object",
+      "required": ["type", "items"],
+      "properties": {
+        "type": { "const": "list" },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["text"],
+            "properties": {
+              "text": { "type": "string" },
+              "level": { "type": "integer", "minimum": 0 },
+              "bullet_type": { 
+                "type": "string",
+                "enum": ["bullet", "number", "letter", "roman"]
+              }
+            }
+          }
+        },
+        "list_type": {
+          "type": "string",
+          "enum": ["unordered", "ordered"]
+        },
+        "page_number": { "type": ["integer", "null"] },
+        "bbox": { "$ref": "#/definitions/BoundingBox" },
+        "metadata": { "type": "object" }
+      }
+    },
+    "BoundingBox": {
+      "type": ["object", "null"],
+      "description": "Bounding box coordinates",
+      "properties": {
+        "x0": { "type": "number" },
+        "y0": { "type": "number" }, 
+        "x1": { "type": "number" },
+        "y1": { "type": "number" },
+        "width": { "type": "number" },
+        "height": { "type": "number" }
+      },
+      "required": ["x0", "y0", "x1", "y1"]
+    },
+    "FontInfo": {
+      "type": ["object", "null"],
+      "description": "Font styling information",
+      "properties": {
+        "font_name": { "type": "string" },
+        "font_size": { "type": "number" },
+        "is_bold": { "type": "boolean" },
+        "is_italic": { "type": "boolean" },
+        "color": { "type": "integer" },
+        "flags": { "type": "integer" }
+      }
+    }
+  }
+}

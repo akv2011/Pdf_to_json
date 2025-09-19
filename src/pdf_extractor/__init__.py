@@ -13,5 +13,6 @@ from .extractor import PDFStructureExtractor
 from .models import ExtractionConfig
 from .content_classifier import ContentClassifier
 from .text_cleaner import TextCleaner
+from .structure_builder import StructureBuilder
 
-__all__ = ["PDFStructureExtractor", "ExtractionConfig", "ContentClassifier", "TextCleaner"]
+__all__ = ["PDFStructureExtractor", "ExtractionConfig", "ContentClassifier", "TextCleaner", "StructureBuilder"]
