@@ -40,7 +40,7 @@ class TextCleaner:
         self.artifact_threshold = artifact_threshold
         self.position_tolerance = position_tolerance
         
-        # Common ligature mappings for normalization
+
         self.ligature_map = {
             'ﬁ': 'fi',
             'ﬂ': 'fl',
@@ -59,21 +59,21 @@ class TextCleaner:
             '…': '...',
         }
         
-        # Regex patterns for common PDF artifacts
+
         self.page_number_patterns = [
-            r'^\s*\d+\s*$',  # Simple page numbers
-            r'^\s*Page\s+\d+\s*$',  # "Page N"
-            r'^\s*\d+\s*/\s*\d+\s*$',  # "N/M" format
-            r'^\s*-\s*\d+\s*-\s*$',  # "-N-" format
+            r'^\s*\d+\s*$',
+            r'^\s*Page\s+\d+\s*$',
+            r'^\s*\d+\s*/\s*\d+\s*$',
+            r'^\s*-\s*\d+\s*-\s*$',
         ]
         
-        # Patterns for detecting headers/footers content
+
         self.artifact_patterns = [
-            r'^[A-Z\s]{10,}$',  # ALL CAPS headers (at least 10 chars)
-            r'^\d{1,2}/\d{1,2}/\d{2,4}$',  # Dates
-            r'^www\.',  # URLs
-            r'@',  # Email addresses
-            r'©',  # Copyright symbols
+            r'^[A-Z\s]{10,}$',
+            r'^\d{1,2}/\d{1,2}/\d{2,4}$',
+            r'^www\.',
+            r'@',
+            r'©',
         ]
     
     def clean_pages(self, pages: List[PageContent]) -> List[PageContent]:
@@ -88,10 +88,10 @@ class TextCleaner:
         if not pages:
             return pages
         
-        # Step 1: Detect artifacts across all pages
+
         artifacts = self._detect_artifacts(pages)
         
-        # Step 2: Clean each page
+
         cleaned_pages = []
         for page in pages:
             cleaned_page = self._clean_page(page, artifacts)
@@ -108,9 +108,9 @@ class TextCleaner:
         Returns:
             List of detected TextArtifact objects
         """
-        # Group similar text blocks by position and content
-        position_groups = defaultdict(list)  # position_key -> [(text, page_num, bbox)]
-        text_frequency = Counter()  # text -> count
+
+        position_groups = defaultdict(list)
+        text_frequency = Counter()
         
         total_pages = len(pages)
         artifact_threshold_count = max(1, int(total_pages * self.artifact_threshold))
@@ -119,22 +119,22 @@ class TextCleaner:
             page_texts = self._extract_page_texts(page)
             
             for text, bbox in page_texts:
-                # Skip empty or very short text
+
                 if len(text.strip()) < 2:
                     continue
                 
-                # Create position key for grouping
+
                 pos_key = self._get_position_key(bbox)
                 position_groups[pos_key].append((text, page.page_number, bbox))
                 text_frequency[text.strip()] += 1
         
-        # Identify artifacts
+
         artifacts = []
         
-        # Method 1: Text appearing frequently across pages
+
         for text, count in text_frequency.items():
             if count >= artifact_threshold_count:
-                # Find all pages and positions for this text
+
                 pages_with_text = set()
                 representative_bbox = None
                 
@@ -149,13 +149,13 @@ class TextCleaner:
                     artifact = TextArtifact(text, representative_bbox, pages_with_text)
                     artifacts.append(artifact)
         
-        # Method 2: Text in consistent positions (headers/footers)
+
         for pos_key, entries in position_groups.items():
             if len(entries) >= artifact_threshold_count:
-                # Check if these are in header/footer positions
+
                 sample_bbox = entries[0][2]
                 if self._is_header_footer_position(sample_bbox, pages[0]):
-                    # Group by text content
+
                     text_groups = defaultdict(list)
                     for text, page_num, bbox in entries:
                         text_groups[text.strip()].append((page_num, bbox))
@@ -179,12 +179,12 @@ class TextCleaner:
         """
         texts = []
         
-        # Extract from content blocks
+
         for block in page.content_blocks:
             if block.is_text_block and block.text.strip():
                 texts.append((block.text.strip(), block.bbox))
         
-        # Also extract from individual spans for more granular detection
+
         for block in page.content_blocks:
             for line in block.lines:
                 for span in line.spans:
@@ -202,7 +202,7 @@ class TextCleaner:
         Returns:
             String key representing the position
         """
-        # Round coordinates to tolerance level
+
         x0 = round(bbox.x0 / self.position_tolerance) * self.position_tolerance
         y0 = round(bbox.y0 / self.position_tolerance) * self.position_tolerance
         return f"{x0:.1f},{y0:.1f}"
@@ -218,26 +218,26 @@ class TextCleaner:
         """
         text = text.strip()
         
-        # Check against page number patterns
+
         for pattern in self.page_number_patterns:
             if re.match(pattern, text, re.IGNORECASE):
                 return True
         
-        # Check against artifact patterns
+
         for i, pattern in enumerate(self.artifact_patterns):
-            # Special handling for ALL CAPS pattern (don't use IGNORECASE)
-            if i == 0:  # ALL CAPS pattern
+
+            if i == 0:
                 if re.search(pattern, text):
                     return True
             else:
                 if re.search(pattern, text, re.IGNORECASE):
                     return True
         
-        # Check for very short repeated text
+
         if len(text) <= 3 and not text.isalpha():
             return True
         
-        # Check for all numbers or symbols
+
         if re.match(r'^[\d\s\-\./]+$', text):
             return True
         
@@ -254,8 +254,8 @@ class TextCleaner:
             True if in header/footer position, False otherwise
         """
         page_height = sample_page.page_height
-        header_threshold = page_height * 0.1  # Top 10%
-        footer_threshold = page_height * 0.9   # Bottom 10%
+        header_threshold = page_height * 0.1
+        footer_threshold = page_height * 0.9
         
         return bbox.y0 < header_threshold or bbox.y0 > footer_threshold
     
@@ -269,7 +269,7 @@ class TextCleaner:
         Returns:
             Cleaned PageContent object
         """
-        # Create a copy of the page to avoid modifying the original
+
         cleaned_page = PageContent(
             page_number=page.page_number,
             page_width=page.page_width,
@@ -277,27 +277,27 @@ class TextCleaner:
             rotation=page.rotation
         )
         
-        # Track artifact texts to remove
+
         artifact_texts = {artifact.text for artifact in artifacts 
                          if page.page_number in artifact.pages}
         
-        # Process content blocks
+
         for block in page.content_blocks:
             if not block.is_text_block:
-                # Keep non-text blocks as-is
+
                 cleaned_page.content_blocks.append(block)
                 continue
             
-            # Check if this block is an artifact
+
             if block.text.strip() in artifact_texts:
-                continue  # Skip artifacts
+                continue
             
-            # Clean the text content
+
             cleaned_text = self.normalize_text(block.text)
             
-            # Only keep blocks with meaningful content
+
             if cleaned_text.strip():
-                # Create cleaned block
+
                 cleaned_block = ContentBlock(
                     block_number=block.block_number,
                     block_type=block.block_type,
@@ -306,7 +306,7 @@ class TextCleaner:
                 )
                 cleaned_page.content_blocks.append(cleaned_block)
         
-        # Also clean legacy text blocks if they exist
+
         for text_block in page.text_blocks:
             if text_block.text.strip() not in artifact_texts:
                 cleaned_text = self.normalize_text(text_block.text)
@@ -338,7 +338,7 @@ class TextCleaner:
             cleaned_spans = []
             for span in line.spans:
                 cleaned_text = self.normalize_text(span.text)
-                if cleaned_text.strip():  # Only keep spans with content
+                if cleaned_text.strip():
                     cleaned_span = TextSpan(
                         text=cleaned_text,
                         bbox=span.bbox,
@@ -347,7 +347,7 @@ class TextCleaner:
                     )
                     cleaned_spans.append(cleaned_span)
             
-            if cleaned_spans:  # Only keep lines with spans
+            if cleaned_spans:
                 cleaned_line = TextLine(
                     spans=cleaned_spans,
                     bbox=line.bbox,
@@ -370,35 +370,35 @@ class TextCleaner:
         if not text:
             return text
         
-        # Step 1: Fix ligatures
+
         normalized = text
         for ligature, replacement in self.ligature_map.items():
             normalized = normalized.replace(ligature, replacement)
         
-        # Step 2: Normalize line endings first
+
         normalized = re.sub(r'\r\n|\r', '\n', normalized)
         
-        # Step 3: Process lines individually to preserve indentation
+
         lines = normalized.split('\n')
         cleaned_lines = []
         
         for line in lines:
-            # Only trim trailing spaces, preserve leading spaces for indentation
+
             cleaned_line = line.rstrip()
-            # Only collapse multiple spaces within the line content (not leading)
-            if cleaned_line.lstrip():  # If line has content
+
+            if cleaned_line.lstrip():
                 leading_spaces = len(cleaned_line) - len(cleaned_line.lstrip())
                 content = cleaned_line.lstrip()
-                # Collapse multiple spaces within content
+
                 content = re.sub(r' +', ' ', content)
                 cleaned_line = ' ' * leading_spaces + content
             cleaned_lines.append(cleaned_line)
         
-        # Step 4: Remove excessive blank lines (more than 2 consecutive)
+
         result = '\n'.join(cleaned_lines)
         result = re.sub(r'\n{3,}', '\n\n', result)
         
-        # Step 5: Replace tabs with spaces
+
         result = result.replace('\t', ' ')
         
         return result
@@ -419,7 +419,7 @@ class TextCleaner:
             stripped = line.strip()
             is_page_number = False
             
-            # Check against page number patterns
+
             for pattern in self.page_number_patterns:
                 if re.match(pattern, stripped, re.IGNORECASE):
                     is_page_number = True
@@ -463,7 +463,7 @@ class TextCleaner:
             }
             report['artifacts'].append(artifact_info)
         
-        # Sort by frequency (most common first)
+
         report['artifacts'].sort(key=lambda x: x['frequency'], reverse=True)
         
         return report

@@ -1,8 +1,3 @@
-"""
-Tests for table extraction functionality.
-
-Tests the table wrappers, normalizer, and main TableExtractor class.
-"""
 
 import pytest
 from unittest.mock import Mock, patch, MagicMock

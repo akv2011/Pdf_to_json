@@ -24,7 +24,7 @@ class PDFStructureExtractor:
         logger = get_logger('pdf_extractor.extractor')
         start_time = time.time()
         
-        # Log extraction start with configuration
+
         pdf_logger.log_extraction_start(
             pdf_path=str(pdf_path),
             config_info={
@@ -39,7 +39,7 @@ class PDFStructureExtractor:
         result = None
         
         try:
-            # Try to open the PDF document
+
             try:
                 pdf_doc = fitz.open(pdf_path)
                 logger.debug(f"Successfully opened PDF: {pdf_path}")
@@ -52,7 +52,7 @@ class PDFStructureExtractor:
             except Exception as e:
                 raise ExtractionError(f"Unexpected error opening {pdf_path}: {str(e)}")
             
-            # Handle password-protected PDFs
+
             if pdf_doc.needs_pass:
                 if not self.config.password:
                     raise PasswordRequiredError(f"PDF requires password: {pdf_path}")
@@ -64,7 +64,7 @@ class PDFStructureExtractor:
                 except Exception as e:
                     raise PasswordRequiredError(f"Authentication failed: {str(e)}")
             
-            # Extract metadata safely
+
             try:
                 metadata = self._extract_metadata(pdf_doc)
                 logger.debug(f"Extracted metadata for {pdf_doc.page_count} page PDF")
@@ -72,26 +72,26 @@ class PDFStructureExtractor:
                 logger.warning(f"Failed to extract metadata: {str(e)}")
                 metadata = {}
             
-            # Create basic extraction result
+
             result = ExtractionResult(
                 file_path=str(pdf_path),
                 pages=[],
                 metadata=metadata,
                 extraction_config=self.config,
-                processing_time=0  # Will be updated at the end
+                processing_time=0
             )
             
-            # Process each page with error handling for individual pages
+
             pages_processed = 0
             for page_num in range(pdf_doc.page_count):
                 try:
                     page = pdf_doc[page_num]
                     
-                    # Use PageProcessor for detailed content extraction
+
                     page_content = self.page_processor.process_page(page, page_num + 1)
                     
-                    # For backward compatibility, also create basic text blocks
-                    # from the structured content
+
+
                     self._create_legacy_text_blocks(page_content)
                     
                     result.pages.append(page_content)
@@ -100,24 +100,24 @@ class PDFStructureExtractor:
                     logger.debug(f"Successfully processed page {page_num + 1}/{pdf_doc.page_count}")
                     
                 except Exception as e:
-                    # Log page-specific error but continue processing
+
                     pdf_logger.log_page_processing_error(
                         pdf_path=str(pdf_path),
                         page_number=page_num + 1,
                         error=e
                     )
                     
-                    # Add error to results but continue with next page
+
                     if not hasattr(result, 'errors'):
                         result.errors = []
                     result.errors.append(f"Page {page_num + 1}: {str(e)}")
                     continue
             
-            # Calculate processing time
+
             processing_time = time.time() - start_time
             result.processing_time = processing_time
             
-            # Log successful completion
+
             pdf_logger.log_extraction_complete(
                 pdf_path=str(pdf_path),
                 pages_processed=pages_processed,
@@ -127,7 +127,7 @@ class PDFStructureExtractor:
             return result.to_dict()
             
         except (ExtractionError, PasswordRequiredError, UnsupportedPDFError) as e:
-            # Log known extraction errors
+
             pdf_logger.log_extraction_error(
                 pdf_path=str(pdf_path),
                 error=e,
@@ -136,7 +136,7 @@ class PDFStructureExtractor:
             raise
             
         except Exception as e:
-            # Log unexpected errors
+
             pdf_logger.log_extraction_error(
                 pdf_path=str(pdf_path),
                 error=e,
@@ -145,7 +145,7 @@ class PDFStructureExtractor:
             raise ExtractionError(f"Failed to extract from {pdf_path}: {str(e)}")
             
         finally:
-            # Ensure PDF document is always closed
+
             if pdf_doc is not None:
                 try:
                     pdf_doc.close()
@@ -166,7 +166,7 @@ class PDFStructureExtractor:
         pdf_doc = None
         
         try:
-            # Try to open the PDF document
+
             try:
                 pdf_doc = fitz.open(pdf_path)
                 logger.debug(f"Successfully opened PDF for info: {pdf_path}")
@@ -179,7 +179,7 @@ class PDFStructureExtractor:
             except Exception as e:
                 raise ExtractionError(f"Unexpected error opening {pdf_path}: {str(e)}")
             
-            # Extract basic information safely
+
             try:
                 file_size_mb = pdf_path.stat().st_size / (1024 * 1024)
             except Exception as e:
@@ -211,7 +211,7 @@ class PDFStructureExtractor:
             raise ExtractionError(f"Failed to get info for {pdf_path}: {str(e)}")
             
         finally:
-            # Ensure PDF document is always closed
+
             if pdf_doc is not None:
                 try:
                     pdf_doc.close()
@@ -239,7 +239,7 @@ class PDFStructureExtractor:
             }
         except Exception as e:
             logger.warning(f"Error extracting metadata: {str(e)}")
-            # Return basic structure even if metadata extraction fails
+
             return {
                 'title': '',
                 'author': '',
@@ -261,7 +261,7 @@ class PDFStructureExtractor:
         """
         from .models import TextBlock, ContentType
         
-        # Convert structured content blocks to simple text blocks
+
         for content_block in page_content.content_blocks:
             if content_block.is_text_block and content_block.text.strip():
                 text_block = TextBlock(

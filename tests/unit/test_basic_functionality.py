@@ -1,6 +1,3 @@
-"""
-Basic tests for the PDF Structure Extractor
-"""
 
 import pytest
 import json

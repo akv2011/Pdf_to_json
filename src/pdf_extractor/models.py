@@ -52,7 +52,7 @@ class ExtractionConfig:
     table_extraction_methods: List[str] = field(default_factory=lambda: ["pdfplumber", "camelot", "tabula"])
     min_table_rows: int = 2
     min_table_cols: int = 2
-    text_extraction_method: str = "pymupdf"  # or "pdfplumber"
+    text_extraction_method: str = "pymupdf"
     password: Optional[str] = None
 
 
@@ -110,7 +110,7 @@ class TextSpan:
     text: str
     bbox: BoundingBox
     font_info: FontInfo
-    origin: tuple = field(default_factory=tuple)  # (x, y) baseline origin
+    origin: tuple = field(default_factory=tuple)
     
 
 @dataclass
@@ -118,8 +118,8 @@ class TextLine:
     """Represents a line of text containing multiple spans."""
     spans: List[TextSpan]
     bbox: BoundingBox
-    wmode: int = 0  # Writing mode: 0=horizontal, 1=vertical
-    direction: tuple = field(default_factory=lambda: (1, 0))  # (x, y) writing direction
+    wmode: int = 0
+    direction: tuple = field(default_factory=lambda: (1, 0))
     
     @property
     def text(self) -> str:
@@ -131,7 +131,7 @@ class TextLine:
 class ContentBlock:
     """Represents a block of content (text or image) with detailed structure."""
     block_number: int
-    block_type: int  # 0=text, 1=image
+    block_type: int
     bbox: BoundingBox
     lines: List[TextLine] = field(default_factory=list)
     
@@ -201,7 +201,7 @@ class Table:
         result = []
         
         for i, row in enumerate(array):
-            if i != header_row:  # Skip header row
+            if i != header_row:
                 row_dict = {}
                 for j, value in enumerate(row):
                     header = headers[j] if j < len(headers) else f"Column_{j}"
@@ -260,9 +260,9 @@ class PageContent:
     page_width: Optional[float] = None
     page_height: Optional[float] = None
     rotation: int = 0
-    # Enhanced structured content from get_text('dict')
+
     content_blocks: List[ContentBlock] = field(default_factory=list)
-    raw_text_data: Optional[Dict[str, Any]] = None  # Store raw dict for debugging
+    raw_text_data: Optional[Dict[str, Any]] = None
 
 
 @dataclass
@@ -481,12 +481,12 @@ class SectionNode:
         """Get all text content from this section and subsections."""
         text_parts = []
         
-        # Add content from this section
+
         for content in self.content_blocks:
             if hasattr(content, 'text'):
                 text_parts.append(content.text)
         
-        # Add content from subsections
+
         for subsection in self.subsections:
             text_parts.append(subsection.get_text_content())
         
@@ -549,7 +549,7 @@ class DocumentStructure:
             for section in sections:
                 if section.title.lower() == title.lower():
                     return section
-                # Search in subsections
+
                 result = search_sections(section.subsections)
                 if result:
                     return result

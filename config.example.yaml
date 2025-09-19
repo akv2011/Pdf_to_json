@@ -1,10 +1,7 @@
-# PDF Extractor Configuration File
-# See documentation for detailed explanation of options
 
-# Extraction modes: standard, detailed, fast
 mode: standard
 
-# Output formats: hierarchical, flat, raw
+
 format: hierarchical
 
 # Feature flags

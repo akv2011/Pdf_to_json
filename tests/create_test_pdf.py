@@ -1,6 +1,3 @@
-"""
-Create a simple test PDF for integration testing.
-"""
 
 from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import letter

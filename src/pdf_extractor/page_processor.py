@@ -1,13 +1,5 @@
-"""
-Page-level content analysis and structure extraction.
-
-This module implements detailed page processing using PyMuPDF's get_text('dict') 
-method to extract content blocks with precise bounding boxes, font information,
-and spatial layout data. It also handles image extraction and caption detection.
-"""
-
 from typing import List, Dict, Any, Tuple
-import fitz  # PyMuPDF
+import fitz
 
 from .models import (
     PageContent, ContentBlock, TextLine, TextSpan, FontInfo, BoundingBox,
@@ -18,46 +10,29 @@ from .logging_utils import get_logger
 
 
 class PageProcessor:
-    """Handles detailed page-level content extraction and analysis."""
-    
     def __init__(self, debug: bool = False, extract_images: bool = False):
-        """Initialize the page processor.
-        
-        Args:
-            debug: If True, store raw text data for debugging purposes
-            extract_images: If True, extract images and charts from pages
-        """
         self.debug = debug
         self.extract_images = extract_images
         self.chart_extractor = ChartExtractor(debug=debug) if extract_images else None
     
     def process_page(self, page: fitz.Page, page_number: int) -> PageContent:
-        """Process a single page to extract detailed content structure.
-        
-        Args:
-            page: PyMuPDF page object
-            page_number: 1-based page number
-            
-        Returns:
-            PageContent object with detailed structure information
-        """
         logger = get_logger('pdf_extractor.page_processor')
         
         try:
-            # Get structured text data with proper sorting for reading order
+
             try:
                 text_dict = page.get_text("dict", sort=True)
                 logger.debug(f"Retrieved text dictionary for page {page_number}")
             except Exception as e:
                 logger.warning(f"Failed to get text dict for page {page_number}: {str(e)}")
-                # Create minimal text_dict structure for fallback
+
                 text_dict = {
                     'width': page.rect.width,
                     'height': page.rect.height,
                     'blocks': []
                 }
             
-            # Create page content object
+
             page_content = PageContent(
                 page_number=page_number,
                 page_width=text_dict.get('width', page.rect.width),
@@ -65,11 +40,11 @@ class PageProcessor:
                 rotation=getattr(page, 'rotation', 0)
             )
             
-            # Store raw data if debugging
+
             if self.debug:
                 page_content.raw_text_data = text_dict
             
-            # Process all blocks in the page with error handling for individual blocks
+
             content_blocks = []
             for block_idx, block_data in enumerate(text_dict.get('blocks', [])):
                 try:
@@ -80,18 +55,18 @@ class PageProcessor:
                     logger.warning(
                         f"Failed to process block {block_idx} on page {page_number}: {str(e)}"
                     )
-                    # Continue processing other blocks
+
                     continue
             
             page_content.content_blocks = content_blocks
             
-            # Extract images if enabled with error handling
+
             if self.extract_images and self.chart_extractor:
                 try:
-                    # First, we need to create text blocks for caption detection
+
                     text_blocks = self._create_text_blocks_for_caption_detection(content_blocks)
                     
-                    # Extract images with caption detection
+
                     images = self.chart_extractor.extract_images_from_page(
                         page, page_number, text_blocks
                     )
@@ -100,7 +75,7 @@ class PageProcessor:
                     
                 except Exception as e:
                     logger.warning(f"Failed to extract images from page {page_number}: {str(e)}")
-                    # Continue without images rather than failing the entire page
+
                     page_content.images = []
             
             logger.debug(f"Successfully processed page {page_number} with {len(content_blocks)} content blocks")
@@ -108,7 +83,7 @@ class PageProcessor:
             
         except Exception as e:
             logger.error(f"Critical error processing page {page_number}: {str(e)}")
-            # Return minimal page content rather than failing entirely
+
             return PageContent(
                 page_number=page_number,
                 page_width=page.rect.width if hasattr(page, 'rect') else 0,
@@ -122,19 +97,11 @@ class PageProcessor:
         self, 
         content_blocks: List[ContentBlock]
     ) -> List[TextBlock]:
-        """Create TextBlock objects from ContentBlocks for caption detection.
-        
-        Args:
-            content_blocks: List of content blocks from page processing
-            
-        Returns:
-            List of TextBlock objects suitable for caption detection
-        """
         text_blocks = []
         
         for block in content_blocks:
             if block.is_text_block and block.text.strip():
-                # Extract font information from the first span if available
+
                 font_info = None
                 if block.lines and block.lines[0].spans:
                     first_span = block.lines[0].spans[0]
@@ -150,7 +117,7 @@ class PageProcessor:
                 
                 text_block = TextBlock(
                     text=block.text,
-                    content_type=ContentType.TEXT,  # Default to text for caption detection
+                    content_type=ContentType.TEXT,
                     bbox=block.bbox,
                     font_info=font_info
                 )
@@ -160,14 +127,6 @@ class PageProcessor:
         return text_blocks
     
     def _process_block(self, block_data: Dict[str, Any]) -> ContentBlock:
-        """Process a single block from the text dictionary.
-        
-        Args:
-            block_data: Block dictionary from PyMuPDF
-            
-        Returns:
-            ContentBlock object with detailed structure
-        """
         block_bbox = self._create_bbox(block_data['bbox'])
         
         content_block = ContentBlock(
@@ -176,7 +135,7 @@ class PageProcessor:
             bbox=block_bbox
         )
         
-        # Only process lines for text blocks (type 0)
+
         if block_data['type'] == 0 and 'lines' in block_data:
             content_block.lines = [
                 self._process_line(line_data) 
@@ -186,14 +145,6 @@ class PageProcessor:
         return content_block
     
     def _process_line(self, line_data: Dict[str, Any]) -> TextLine:
-        """Process a single line from the block data.
-        
-        Args:
-            line_data: Line dictionary from PyMuPDF
-            
-        Returns:
-            TextLine object with spans
-        """
         line_bbox = self._create_bbox(line_data['bbox'])
         
         text_line = TextLine(
@@ -203,7 +154,7 @@ class PageProcessor:
             direction=tuple(line_data.get('dir', (1, 0)))
         )
         
-        # Process all spans in the line
+
         for span_data in line_data.get('spans', []):
             text_span = self._process_span(span_data)
             if text_span:
@@ -212,17 +163,9 @@ class PageProcessor:
         return text_line
     
     def _process_span(self, span_data: Dict[str, Any]) -> TextSpan:
-        """Process a single span from the line data.
-        
-        Args:
-            span_data: Span dictionary from PyMuPDF
-            
-        Returns:
-            TextSpan object with font and position information
-        """
         span_bbox = self._create_bbox(span_data['bbox'])
         
-        # Create font information object
+
         font_info = FontInfo(
             font_name=span_data.get('font', ''),
             font_size=span_data.get('size', 0.0),
@@ -240,14 +183,6 @@ class PageProcessor:
         )
     
     def _create_bbox(self, bbox_tuple: Tuple[float, float, float, float]) -> BoundingBox:
-        """Create a BoundingBox object from a tuple.
-        
-        Args:
-            bbox_tuple: (x0, y0, x1, y1) coordinates
-            
-        Returns:
-            BoundingBox object
-        """
         return BoundingBox(
             x0=bbox_tuple[0],
             y0=bbox_tuple[1],
@@ -256,14 +191,6 @@ class PageProcessor:
         )
     
     def get_page_statistics(self, page_content: PageContent) -> Dict[str, Any]:
-        """Get statistical information about the page content.
-        
-        Args:
-            page_content: Processed page content
-            
-        Returns:
-            Dictionary with page statistics
-        """
         total_blocks = len(page_content.content_blocks)
         text_blocks = sum(1 for block in page_content.content_blocks if block.is_text_block)
         image_blocks = sum(1 for block in page_content.content_blocks if block.is_image_block)
@@ -275,7 +202,7 @@ class PageProcessor:
             for line in block.lines
         )
         
-        # Analyze font usage
+
         font_sizes = []
         font_names = set()
         for block in page_content.content_blocks:
@@ -298,14 +225,6 @@ class PageProcessor:
         }
     
     def extract_text_content(self, page_content: PageContent) -> str:
-        """Extract plain text content from processed page.
-        
-        Args:
-            page_content: Processed page content
-            
-        Returns:
-            Plain text string with proper line breaks
-        """
         text_parts = []
         for block in page_content.content_blocks:
             if block.is_text_block and block.text.strip():

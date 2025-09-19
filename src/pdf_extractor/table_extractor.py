@@ -11,7 +11,7 @@ from typing import List, Dict, Any, Optional, Tuple
 from pathlib import Path
 from dataclasses import dataclass, field
 
-import fitz  # PyMuPDF for page analysis
+import fitz
 
 from .table_wrappers import PdfplumberWrapper, CamelotWrapper, TabulaWrapper
 from .table_normalizer import TableNormalizer
@@ -41,7 +41,7 @@ class PageAnalysis:
     line_count: int = 0
     has_text_columns: bool = False
     text_blocks: int = 0
-    recommended_strategy: str = "ruled"  # "ruled" or "unruled"
+    recommended_strategy: str = "ruled"
     confidence: float = 0.0
 
 
@@ -79,15 +79,15 @@ class TableExtractor:
         self.enable_pre_analysis = enable_pre_analysis
         self.fallback_on_failure = fallback_on_failure
         
-        # Initialize wrappers
+
         self.pdfplumber_wrapper = PdfplumberWrapper(str(filepath))
         self.camelot_wrapper = CamelotWrapper(str(filepath))
         self.tabula_wrapper = TabulaWrapper(str(filepath))
         
-        # Initialize normalizer
+
         self.normalizer = TableNormalizer()
         
-        # Cache for page analysis
+
         self._page_analysis_cache: Dict[int, PageAnalysis] = {}
     
     def extract_tables_from_page(self, page_num: int) -> TableExtractionResult:
@@ -106,7 +106,7 @@ class TableExtractor:
         result = TableExtractionResult(page_num=page_num)
         
         try:
-            # Step 1: Analyze page structure if enabled
+
             if self.enable_pre_analysis:
                 try:
                     analysis = self._analyze_page_structure(page_num)
@@ -118,7 +118,7 @@ class TableExtractor:
             else:
                 analysis = PageAnalysis(page_num=page_num, recommended_strategy="ruled")
             
-            # Step 2: Choose extraction strategy based on analysis
+
             success = False
             tables = []
             method = "none"
@@ -132,7 +132,7 @@ class TableExtractor:
                 logger.warning(f"Primary table extraction strategy failed for page {page_num}: {str(e)}")
                 success = False
             
-            # Step 3: If primary strategy fails and fallback is enabled, try alternative
+
             if not success and self.fallback_on_failure:
                 try:
                     logger.debug(f"Primary strategy failed for page {page_num}, trying fallback")
@@ -145,7 +145,7 @@ class TableExtractor:
                     logger.warning(f"Fallback table extraction failed for page {page_num}: {str(e)}")
                     success = False
             
-            # Step 4: Validate and score the results
+
             if success and tables:
                 try:
                     validated_tables = []
@@ -211,7 +211,7 @@ class TableExtractor:
         """
         results = []
         
-        # Get total number of pages
+
         with fitz.open(str(self.filepath)) as doc:
             total_pages = len(doc)
         
@@ -221,7 +221,7 @@ class TableExtractor:
             result = self.extract_tables_from_page(page_num)
             results.append(result)
         
-        # Summary statistics
+
         successful_pages = sum(1 for r in results if r.success)
         total_tables = sum(len(r.tables) for r in results)
         avg_quality = sum(sum(r.quality_scores) for r in results) / max(1, total_tables)
@@ -253,62 +253,62 @@ class TableExtractor:
                 
                 page = doc[page_num]
                 
-                # Analyze vector graphics (lines/shapes)
+
                 drawings = page.get_drawings()
                 line_segments = []
                 
                 for drawing in drawings:
                     for item in drawing.get("items", []):
-                        if item[0] in ["l", "re"]:  # line or rectangle
+                        if item[0] in ["l", "re"]:
                             line_segments.append(item)
                 
                 analysis.line_count = len(line_segments)
-                analysis.has_lines = analysis.line_count > 10  # Threshold for ruled tables
+                analysis.has_lines = analysis.line_count > 10
                 
-                # Analyze text structure
+
                 text_dict = page.get_text("dict")
                 text_blocks = []
                 
                 for block in text_dict.get("blocks", []):
-                    if "lines" in block:  # Text block
+                    if "lines" in block:
                         text_blocks.append(block)
                 
                 analysis.text_blocks = len(text_blocks)
                 
-                # Check for column-like text alignment
+
                 if text_blocks:
                     x_positions = []
                     for block in text_blocks:
                         for line in block.get("lines", []):
                             for span in line.get("spans", []):
-                                x_positions.append(span["bbox"][0])  # x0 coordinate
+                                x_positions.append(span["bbox"][0])
                     
-                    # Look for repeated x-coordinates (column alignment)
+
                     if x_positions:
                         from collections import Counter
-                        x_counts = Counter(round(x, -1) for x in x_positions)  # Round to nearest 10
+                        x_counts = Counter(round(x, -1) for x in x_positions)
                         common_x = [x for x, count in x_counts.items() if count > 2]
                         analysis.has_text_columns = len(common_x) >= 2
                 
-                # Determine strategy based on analysis
+
                 if analysis.has_lines:
                     analysis.recommended_strategy = "ruled"
-                    analysis.confidence = min(0.9, analysis.line_count / 50)  # More lines = higher confidence
+                    analysis.confidence = min(0.9, analysis.line_count / 50)
                 elif analysis.has_text_columns:
                     analysis.recommended_strategy = "unruled"
                     analysis.confidence = 0.7
                 else:
-                    # Default to ruled with low confidence
+
                     analysis.recommended_strategy = "ruled"
                     analysis.confidence = 0.3
                 
         except Exception as e:
             logger.error(f"Page analysis failed for page {page_num}: {e}")
-            # Default strategy
+
             analysis.recommended_strategy = "ruled"
             analysis.confidence = 0.1
         
-        # Cache the result
+
         self._page_analysis_cache[page_num] = analysis
         return analysis
     
@@ -319,7 +319,7 @@ class TableExtractor:
         Returns:
             (success, tables, method_used)
         """
-        # Try pdfplumber first (fastest for ruled tables)
+
         try:
             tables = self.pdfplumber_wrapper.extract_tables_from_page(page_num)
             if tables and any(self.pdfplumber_wrapper.validate_table(t) for t in tables):
@@ -328,7 +328,7 @@ class TableExtractor:
         except Exception as e:
             logger.debug(f"pdfplumber failed for page {page_num}: {e}")
         
-        # Try camelot lattice (best for complex ruled tables)
+
         try:
             tables = self.camelot_wrapper.extract_lattice(page_num)
             if tables and any(self.camelot_wrapper.validate_table(t) for t in tables):
@@ -346,7 +346,7 @@ class TableExtractor:
         Returns:
             (success, tables, method_used)
         """
-        # Try camelot stream (best for unruled tables)
+
         try:
             tables = self.camelot_wrapper.extract_stream(page_num)
             if tables and any(self.camelot_wrapper.validate_table(t) for t in tables):
@@ -355,7 +355,7 @@ class TableExtractor:
         except Exception as e:
             logger.debug(f"camelot-stream failed for page {page_num}: {e}")
         
-        # Try tabula (reliable fallback)
+
         try:
             tables = self.tabula_wrapper.extract_tables_from_page(page_num)
             if tables and any(self.tabula_wrapper.validate_table(t) for t in tables):
@@ -383,14 +383,14 @@ class TableExtractor:
         successful_pages = sum(1 for r in results if r.success)
         total_tables = sum(len(r.tables) for r in results)
         
-        # Method usage statistics
+
         method_counts = {}
         for result in results:
             if result.success:
                 method = result.method_used
                 method_counts[method] = method_counts.get(method, 0) + 1
         
-        # Quality statistics
+
         all_scores = []
         for result in results:
             all_scores.extend(result.quality_scores)
@@ -399,7 +399,7 @@ class TableExtractor:
         min_quality = min(all_scores) if all_scores else 0
         max_quality = max(all_scores) if all_scores else 0
         
-        # Timing statistics
+
         total_time = sum(r.extraction_time for r in results)
         avg_time_per_page = total_time / total_pages if total_pages > 0 else 0
         

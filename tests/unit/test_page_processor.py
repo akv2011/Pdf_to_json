@@ -1,7 +1,3 @@
-"""
-Tests for Task 3: Page-Level Content Block and Layout Analysis
-"""
-
 import pytest
 from pathlib import Path
 from unittest.mock import Mock, MagicMock, patch

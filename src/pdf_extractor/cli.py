@@ -42,8 +42,7 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
     This command processes PDF files and extracts their content in various structured formats.
     Use different modes for different levels of detail and processing speed.
     """
-    # Configure logging based on verbosity level
-    configure_logging(verbose=verbose, json_format=not verbose)  # Use JSON format unless verbose
+    configure_logging(verbose=verbose, json_format=not verbose)
     logger = get_logger('pdf_extractor.cli')
     
     if verbose:
@@ -60,20 +59,18 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
         }
     })
     
-    # Determine output path based on format
     if output is None:
         if format == 'hierarchical':
             output = input_path.with_suffix('').with_suffix('.structured.json')
         elif format == 'flat':
             output = input_path.with_suffix('').with_suffix('.flat.json')
-        else:  # raw
+        else:
             output = input_path.with_suffix('.json')
     
     if verbose:
         click.echo(f"Output will be saved to: {output}")
     
     try:
-        # Load unified configuration with proper precedence
         extractor_config = load_config_for_cli(
             config_path=config,
             mode=mode,
@@ -97,7 +94,6 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
             if extractor_config.password:
                 click.echo(f"  Password: {'*' * len(extractor_config.password)}")
         
-        # Create extraction configuration for the extractor
         extraction_config = ExtractionConfig(
             preserve_layout=extractor_config.get_effective_layout_preservation(),
             extract_tables=extractor_config.get_effective_table_extraction(),
@@ -105,17 +101,12 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
             verbose=extractor_config.verbose
         )
         
-        # Initialize extractor
         extractor = PDFStructureExtractor(config=extraction_config)
         
-        # Handle password-protected PDFs
         if extractor_config.password:
             if verbose:
                 click.echo("Using provided password for PDF decryption")
-            # Note: Password handling will be implemented in the extractor
-            # For now, we'll pass it as part of the extraction call
         
-        # Extract content
         if verbose:
             click.echo("Starting extraction...")
         
@@ -129,17 +120,14 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
                     click.echo(f"❌ Invalid password or encryption error: {e}", err=True)
                 sys.exit(1)
             else:
-                raise  # Re-raise non-password related exceptions
+                raise
         
-        # Process output based on format
         if extractor_config.format == 'hierarchical':
-            # Use structured JSON with schema validation
             if verbose:
                 click.echo("Converting to hierarchical structured format...")
             
             builder = JSONBuilder(validate_schema=extractor_config.validate_schema, indent=2)
             
-            # Convert to ExtractionResult object (as done before)
             from .models import ExtractionResult, PageContent, TextBlock, ContentType, BoundingBox, ImageInfo
             
             pages = []
@@ -151,7 +139,6 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
                     rotation=page_data.get('rotation', 0)
                 )
                 
-                # Add text blocks
                 for block_data in page_data.get('content_blocks', []):
                     if block_data.get('is_text', False) and block_data.get('text', '').strip():
                         text_block = TextBlock(
@@ -166,7 +153,6 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
                         )
                         page.text_blocks.append(text_block)
                 
-                # Add images
                 for img_data in page_data.get('images', []):
                     image = ImageInfo(
                         image_id=img_data['image_id'],
@@ -187,7 +173,6 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
                 
                 pages.append(page)
             
-            # Create ExtractionResult object
             extraction_obj = ExtractionResult(
                 file_path=str(input_path),
                 pages=pages,
@@ -197,14 +182,11 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
                 warnings=result.get('warnings', [])
             )
             
-            # Build structured JSON
             structured_result = builder.build_from_extraction_result(extraction_obj, extraction_config)
             
-            # Save structured JSON
             builder.save_to_file(structured_result, output)
             
         elif extractor_config.format == 'flat':
-            # Create a simplified, flat JSON structure
             if verbose:
                 click.echo("Converting to flat JSON format...")
             
@@ -216,11 +198,9 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
                 "content": []
             }
             
-            # Flatten all content into a simple list
             for page_data in result.get('pages', []):
                 page_number = page_data['page_number']
                 
-                # Add text content
                 for block_data in page_data.get('content_blocks', []):
                     if block_data.get('is_text', False) and block_data.get('text', '').strip():
                         flat_result["content"].append({
@@ -230,7 +210,6 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
                             "bbox": block_data.get('bbox')
                         })
                 
-                # Add images
                 for img_data in page_data.get('images', []):
                     flat_result["content"].append({
                         "type": "image",
@@ -240,18 +219,15 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
                         "bbox": img_data.get('bbox')
                     })
             
-            # Save flat JSON
             with open(output, 'w', encoding='utf-8') as f:
                 json.dump(flat_result, f, indent=2, ensure_ascii=False)
             
-        else:  # raw format
-            # Save raw extraction result
+        else:
             with open(output, 'w', encoding='utf-8') as f:
                 json.dump(result, f, indent=2, ensure_ascii=False)
         
         click.echo(f"✅ Extraction complete! Saved to: {output}")
         
-        # Log successful completion
         pages = len(result.get('pages', []))
         processing_time = result.get('processing_time', 0)
         logger.info("CLI extraction completed successfully", extra={
@@ -265,12 +241,10 @@ def extract(input_path: Path, output: Optional[Path], password: Optional[str], m
             }
         })
         
-        # Show summary
         if verbose:
             click.echo(f"📄 Processed {pages} pages in {processing_time:.2f}s")
             
             if extractor_config.format == 'hierarchical':
-                # Show structured format summary
                 try:
                     with open(output, 'r', encoding='utf-8') as f:
                         structured_data = json.load(f)

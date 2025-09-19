@@ -1,92 +1,180 @@
-# PDF to JSON Extractor# PDF to JSON Structure Extractor
+# PDF to JSON Extractor# PDF to JSON Extractor# PDF to JSON Structure Extractor
 
 
 
-A Python tool that extracts structured content from PDF files and converts it into well-organized JSON format.A comprehensive Python application that extracts content from PDF files and converts it into well-structured JSON format, preserving document hierarchy and content type classification.
+A Python tool that extracts structured content from PDF files and converts it into organized JSON format.
 
 
 
-## Features## 🎯 Project Overview
+## InstallationA Python tool that extracts structured content from PDF files and converts it into well-organized JSON format.A comprehensive Python application that extracts content from PDF files and converts it into well-structured JSON format, preserving document hierarchy and content type classification.
 
 
-
-- Extracts text, tables, and images from PDF filesThis system addresses the critical need for structured document processing by:
-
-- Maintains hierarchical document structure (headers, sections, paragraphs)
-
-- Supports multiple extraction modes (standard, detailed, fast)- **Preserving Document Hierarchy**: Maintains page-level organization and section/subsection structure
-
-- Outputs clean, structured JSON with proper organization- **Content Type Classification**: Identifies paragraphs, tables, charts, headers, and lists
-
-- Handles complex table layouts with multiple extraction libraries- **Multi-Library Table Extraction**: Uses pdfplumber → camelot → tabula cascading approach
-
-- Includes error handling and logging- **Clean JSON Output**: Produces schema-compliant, UTF-8 encoded JSON with comprehensive metadata
-
-
-
-## Installation## 🚀 Current Implementation Status
-
-
-
-```bash### ✅ Completed (Task 1)
-
-pip install poetry- **Project Setup and Dependency Management** ✓
-
-poetry install  - Poetry configuration with all required dependencies installed
-
-```  - CLI framework with Click (pdf-extract command working)
-
-  - Package structure and entry points configured
-
-## Usage  - Basic PDF extraction pipeline functional
-
-  - Successfully tested with real PDF: "[Fund Factsheet - May]360ONE-MF-May 2025.pdf.pdf"
-
-Basic usage:  - 17 pages processed in 0.06 seconds with proper JSON output
 
 ```bash
 
-poetry run python -m pdf_extractor.cli extract --input document.pdf### 🔧 Ready for Implementation (Task 2)
+pip install poetry
 
-```- **Core PDF Loading and Metadata Extraction**
+poetry install## Features## 🎯 Project Overview
 
-  - Enhance PDFLoader class with robust error handling
-
-With options:  - Improve password protection and authentication
-
-```bash  - Expand metadata extraction capabilities
-
-poetry run python -m pdf_extractor.cli extract \
-
-  --input document.pdf \### 📋 Available Commands
-
-  --output results.json \```bash
-
-  --mode detailed \# Get PDF information
-
-  --format hierarchical \poetry run pdf-extract info "your-file.pdf"
-
-  --verbose
-
-```# Extract content to JSON  
-
-poetry run pdf-extract extract "your-file.pdf" --verbose
-
-## Output JSON Structure```
+```
 
 
 
-The tool produces structured JSON with the following format:## 🏗️ Architecture
+## Usage
+
+- Extracts text, tables, and images from PDF filesThis system addresses the critical need for structured document processing by:
+
+Basic extraction:
+
+```bash- Maintains hierarchical document structure (headers, sections, paragraphs)
+
+poetry run python -m pdf_extractor.cli extract --input document.pdf
+
+```- Supports multiple extraction modes (standard, detailed, fast)- **Preserving Document Hierarchy**: Maintains page-level organization and section/subsection structure
 
 
 
-```json### Core Components
+With options:- Outputs clean, structured JSON with proper organization- **Content Type Classification**: Identifies paragraphs, tables, charts, headers, and lists
+
+```bash
+
+poetry run python -m pdf_extractor.cli extract --input document.pdf --output result.json --mode detailed --format hierarchical --verbose- Handles complex table layouts with multiple extraction libraries- **Multi-Library Table Extraction**: Uses pdfplumber → camelot → tabula cascading approach
+
+```
+
+- Includes error handling and logging- **Clean JSON Output**: Produces schema-compliant, UTF-8 encoded JSON with comprehensive metadata
+
+Available modes:
+
+- `standard` - Balanced extraction speed and detail
+
+- `detailed` - Comprehensive extraction with maximum content analysis  
+
+- `fast` - Quick extraction with basic content identification## Installation## 🚀 Current Implementation Status
+
+
+
+Output formats:
+
+- `hierarchical` - Structured JSON with document sections and content types
+
+- `flat` - Simple list of all content items```bash### ✅ Completed (Task 1)
+
+- `raw` - Unprocessed extraction data
+
+pip install poetry- **Project Setup and Dependency Management** ✓
+
+## What Makes This Special
+
+poetry install  - Poetry configuration with all required dependencies installed
+
+- Preserves document hierarchy (headers, sections, subsections)
+
+- Identifies content types (paragraphs, tables, charts, lists)```  - CLI framework with Click (pdf-extract command working)
+
+- Uses multiple table extraction libraries with fallback (pdfplumber → camelot → tabula)
+
+- Handles complex layouts and maintains spatial relationships  - Package structure and entry points configured
+
+- Schema-validated JSON output with comprehensive metadata
+
+- Fast processing with intelligent caching## Usage  - Basic PDF extraction pipeline functional
+
+
+
+## JSON Output Structure  - Successfully tested with real PDF: "[Fund Factsheet - May]360ONE-MF-May 2025.pdf.pdf"
+
+
+
+Hierarchical format example:Basic usage:  - 17 pages processed in 0.06 seconds with proper JSON output
+
+```json
+
+{```bash
+
+  "document": {
+
+    "title": "Document Title",poetry run python -m pdf_extractor.cli extract --input document.pdf### 🔧 Ready for Implementation (Task 2)
+
+    "sections": [
+
+      {```- **Core PDF Loading and Metadata Extraction**
+
+        "title": "Section 1",
+
+        "content": [  - Enhance PDFLoader class with robust error handling
+
+          {
+
+            "type": "paragraph",With options:  - Improve password protection and authentication
+
+            "text": "Sample paragraph text...",
+
+            "page_number": 1```bash  - Expand metadata extraction capabilities
+
+          },
+
+          {poetry run python -m pdf_extractor.cli extract \
+
+            "type": "table", 
+
+            "headers": ["Column 1", "Column 2"],  --input document.pdf \### 📋 Available Commands
+
+            "data": [["Row 1 Col 1", "Row 1 Col 2"]],
+
+            "page_number": 1  --output results.json \```bash
+
+          }
+
+        ]  --mode detailed \# Get PDF information
+
+      }
+
+    ]  --format hierarchical \poetry run pdf-extract info "your-file.pdf"
+
+  },
+
+  "metadata": {  --verbose
+
+    "page_count": 5,
+
+    "processing_time": 0.06,```# Extract content to JSON  
+
+    "content_types": {"paragraph": 15, "table": 3, "chart": 2}
+
+  }poetry run pdf-extract extract "your-file.pdf" --verbose
+
+}
+
+```## Output JSON Structure```
+
+
+
+Flat format extracts all content into a simple array with page numbers and content types.
+
+
+
+## ConfigurationThe tool produces structured JSON with the following format:## 🏗️ Architecture
+
+
+
+Generate example config:
+
+```bash
+
+poetry run python -m pdf_extractor.cli init-config```json### Core Components
+
+```
 
 {
 
-  "document_info": {1. **PDFStructureExtractor** - Main orchestrator
+Use config file:
 
-    "title": "Document Title",2. **ContentClassifier** - AI-powered content type detection
+```bash  "document_info": {1. **PDFStructureExtractor** - Main orchestrator
+
+poetry run python -m pdf_extractor.cli extract --input document.pdf --config config.yaml
+
+```    "title": "Document Title",2. **ContentClassifier** - AI-powered content type detection
 
     "pages": 10,3. **TableExtractor** - Multi-library table processing
 
