@@ -1,92 +1,180 @@
-# PDF to JSON Structure Extractor
+# PDF to JSON Extractor# PDF to JSON Structure Extractor
 
-A comprehensive Python application that extracts content from PDF files and converts it into well-structured JSON format, preserving document hierarchy and content type classification.
 
-## 🎯 Project Overview
 
-This system addresses the critical need for structured document processing by:
+A Python tool that extracts structured content from PDF files and converts it into well-organized JSON format.A comprehensive Python application that extracts content from PDF files and converts it into well-structured JSON format, preserving document hierarchy and content type classification.
 
-- **Preserving Document Hierarchy**: Maintains page-level organization and section/subsection structure
-- **Content Type Classification**: Identifies paragraphs, tables, charts, headers, and lists
-- **Multi-Library Table Extraction**: Uses pdfplumber → camelot → tabula cascading approach
-- **Clean JSON Output**: Produces schema-compliant, UTF-8 encoded JSON with comprehensive metadata
 
-## 🚀 Current Implementation Status
 
-### ✅ Completed (Task 1)
-- **Project Setup and Dependency Management** ✓
-  - Poetry configuration with all required dependencies installed
-  - CLI framework with Click (pdf-extract command working)
+## Features## 🎯 Project Overview
+
+
+
+- Extracts text, tables, and images from PDF filesThis system addresses the critical need for structured document processing by:
+
+- Maintains hierarchical document structure (headers, sections, paragraphs)
+
+- Supports multiple extraction modes (standard, detailed, fast)- **Preserving Document Hierarchy**: Maintains page-level organization and section/subsection structure
+
+- Outputs clean, structured JSON with proper organization- **Content Type Classification**: Identifies paragraphs, tables, charts, headers, and lists
+
+- Handles complex table layouts with multiple extraction libraries- **Multi-Library Table Extraction**: Uses pdfplumber → camelot → tabula cascading approach
+
+- Includes error handling and logging- **Clean JSON Output**: Produces schema-compliant, UTF-8 encoded JSON with comprehensive metadata
+
+
+
+## Installation## 🚀 Current Implementation Status
+
+
+
+```bash### ✅ Completed (Task 1)
+
+pip install poetry- **Project Setup and Dependency Management** ✓
+
+poetry install  - Poetry configuration with all required dependencies installed
+
+```  - CLI framework with Click (pdf-extract command working)
+
   - Package structure and entry points configured
-  - Basic PDF extraction pipeline functional
+
+## Usage  - Basic PDF extraction pipeline functional
+
   - Successfully tested with real PDF: "[Fund Factsheet - May]360ONE-MF-May 2025.pdf.pdf"
-  - 17 pages processed in 0.06 seconds with proper JSON output
 
-### 🔧 Ready for Implementation (Task 2)
-- **Core PDF Loading and Metadata Extraction**
-  - Enhance PDFLoader class with robust error handling
-  - Improve password protection and authentication
-  - Expand metadata extraction capabilities
+Basic usage:  - 17 pages processed in 0.06 seconds with proper JSON output
 
-### 📋 Available Commands
 ```bash
-# Get PDF information
-poetry run pdf-extract info "your-file.pdf"
 
-# Extract content to JSON  
+poetry run python -m pdf_extractor.cli extract --input document.pdf### 🔧 Ready for Implementation (Task 2)
+
+```- **Core PDF Loading and Metadata Extraction**
+
+  - Enhance PDFLoader class with robust error handling
+
+With options:  - Improve password protection and authentication
+
+```bash  - Expand metadata extraction capabilities
+
+poetry run python -m pdf_extractor.cli extract \
+
+  --input document.pdf \### 📋 Available Commands
+
+  --output results.json \```bash
+
+  --mode detailed \# Get PDF information
+
+  --format hierarchical \poetry run pdf-extract info "your-file.pdf"
+
+  --verbose
+
+```# Extract content to JSON  
+
 poetry run pdf-extract extract "your-file.pdf" --verbose
+
+## Output JSON Structure```
+
+
+
+The tool produces structured JSON with the following format:## 🏗️ Architecture
+
+
+
+```json### Core Components
+
+{
+
+  "document_info": {1. **PDFStructureExtractor** - Main orchestrator
+
+    "title": "Document Title",2. **ContentClassifier** - AI-powered content type detection
+
+    "pages": 10,3. **TableExtractor** - Multi-library table processing
+
+    "extraction_date": "2025-09-20T..."4. **HierarchicalBuilder** - Document structure assembly
+
+  },5. **JSONBuilder** - Schema-compliant output generation
+
+  "content": [
+
+    {### Library Stack
+
+      "type": "header_1",
+
+      "text": "Main Section",- **PyMuPDF (fitz)**: Primary PDF parsing and text extraction
+
+      "page": 1,- **pdfplumber**: Advanced table detection and boundary recognition
+
+      "subsections": [- **camelot-py**: Complex table extraction for difficult layouts
+
+        {- **tabula-py**: Fallback table extraction method
+
+          "type": "paragraph",- **Pillow**: Image processing for chart detection
+
+          "text": "Content text...",- **Click**: Command-line interface
+
+          "page": 1
+
+        },## 📋 Task Management
+
+        {
+
+          "type": "table",This project is managed using **Taskmaster** for structured development workflow. The current implementation plan includes:
+
+          "data": [["col1", "col2"], ["row1", "row2"]],
+
+          "page": 2### 📊 Task Summary
+
+        }- **Total Tasks**: 12 main tasks
+
+      ]- **Subtasks**: 17 detailed subtasks
+
+    }- **High Complexity Tasks**: 2 (Multi-library table extraction, Testing suite)
+
+  ]- **Medium Complexity Tasks**: 6
+
+}- **Low Complexity Tasks**: 4
+
 ```
-
-## 🏗️ Architecture
-
-### Core Components
-
-1. **PDFStructureExtractor** - Main orchestrator
-2. **ContentClassifier** - AI-powered content type detection
-3. **TableExtractor** - Multi-library table processing
-4. **HierarchicalBuilder** - Document structure assembly
-5. **JSONBuilder** - Schema-compliant output generation
-
-### Library Stack
-
-- **PyMuPDF (fitz)**: Primary PDF parsing and text extraction
-- **pdfplumber**: Advanced table detection and boundary recognition
-- **camelot-py**: Complex table extraction for difficult layouts
-- **tabula-py**: Fallback table extraction method
-- **Pillow**: Image processing for chart detection
-- **Click**: Command-line interface
-
-## 📋 Task Management
-
-This project is managed using **Taskmaster** for structured development workflow. The current implementation plan includes:
-
-### 📊 Task Summary
-- **Total Tasks**: 12 main tasks
-- **Subtasks**: 17 detailed subtasks
-- **High Complexity Tasks**: 2 (Multi-library table extraction, Testing suite)
-- **Medium Complexity Tasks**: 6
-- **Low Complexity Tasks**: 4
 
 ### 🚀 Development Phases
 
-#### Phase 1: Foundation (Tasks 1-3)
-- Project setup and dependency management
-- Core PDF loading and metadata extraction
-- Page-level content analysis
+## Configuration
 
-#### Phase 2: Content Processing (Tasks 4-8)
-- Content type classification and header detection
-- Text processing and cleaning
-- Hierarchical structure building
-- Multi-library table extraction strategy
+#### Phase 1: Foundation (Tasks 1-3)
+
+Create a `config.yaml` file to customize extraction settings:- Project setup and dependency management
+
+- Core PDF loading and metadata extraction
+
+```yaml- Page-level content analysis
+
+mode: standard
+
+format: hierarchical#### Phase 2: Content Processing (Tasks 4-8)
+
+extract_tables: true- Content type classification and header detection
+
+extract_images: true- Text processing and cleaning
+
+preserve_layout: false- Hierarchical structure building
+
+```- Multi-library table extraction strategy
+
 - Image and chart identification
 
-#### Phase 3: Output & Integration (Tasks 9-12)
-- JSON schema definition and output builder
-- CLI and configuration system
-- Error handling and logging
-- Comprehensive testing suite
+## What Makes This Special
 
+#### Phase 3: Output & Integration (Tasks 9-12)
+
+- Multi-library table extraction strategy for maximum compatibility- JSON schema definition and output builder
+
+- Intelligent content classification (headers, paragraphs, lists)- CLI and configuration system
+
+- Hierarchical structure preservation from original document- Error handling and logging
+
+- Robust error handling with graceful degradation- Comprehensive testing suite
+
+- Clean, validated JSON output with consistent schema
 ## 🎯 Key Features
 
 ### Content Extraction Capabilities

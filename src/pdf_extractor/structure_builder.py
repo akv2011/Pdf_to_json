@@ -1,10 +1,3 @@
-"""
-Hierarchical Structure Builder for PDF content.
-
-This module implements the StructureBuilder class that converts flat content blocks
-into a nested, hierarchical document structure based on header levels and content flow.
-"""
-
 from typing import List, Dict, Any, Optional, Union
 from collections import deque
 
@@ -15,22 +8,12 @@ from .models import (
 
 
 class HeaderStack:
-    """Stack-based manager for tracking current section hierarchy."""
     
     def __init__(self):
-        """Initialize the header stack."""
         self._stack: List[SectionNode] = []
-        self._level_map: Dict[int, SectionNode] = {}  # level -> current section at that level
+        self._level_map: Dict[int, SectionNode] = {}
     
     def push(self, section: SectionNode) -> None:
-        """Push a new section onto the stack.
-        
-        This automatically handles popping sections at equal or higher levels
-        and maintains the proper parent-child relationships.
-        
-        Args:
-            section: The section to push onto the stack
-        """
         level = section.level.value
         
         # Pop sections at equal or higher levels (lower numbers = higher hierarchy)

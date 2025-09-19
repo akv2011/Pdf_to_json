@@ -1,30 +1,24 @@
-"""
-Data models and configuration for PDF Structure Extractor
-"""
-
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional, Union
 from enum import Enum
 
 
 class ContentType(Enum):
-    """Types of content that can be extracted from PDFs."""
     TEXT = "text"
     TABLE = "table"
     IMAGE = "image"
-    HEADER = "header"  # Generic header (for backward compatibility)
-    HEADER_1 = "header_1"  # H1 - Top level headers
-    HEADER_2 = "header_2"  # H2 - Section headers
-    HEADER_3 = "header_3"  # H3 - Subsection headers
-    HEADER_4 = "header_4"  # H4 - Minor headers
-    HEADER_5 = "header_5"  # H5 - Minor headers
-    HEADER_6 = "header_6"  # H6 - Minor headers
+    HEADER = "header"
+    HEADER_1 = "header_1"
+    HEADER_2 = "header_2"
+    HEADER_3 = "header_3"
+    HEADER_4 = "header_4"
+    HEADER_5 = "header_5"
+    HEADER_6 = "header_6"
     FOOTER = "footer"
     LIST = "list"
     PARAGRAPH = "paragraph"
     
     def is_header_type(self) -> bool:
-        """Check if this content type is any kind of header."""
         return self in {
             ContentType.HEADER,
             ContentType.HEADER_1,
@@ -36,7 +30,6 @@ class ContentType(Enum):
         }
     
     def get_header_level(self) -> Optional[int]:
-        """Get the header level number if this is a header type."""
         header_map = {
             ContentType.HEADER_1: 1,
             ContentType.HEADER_2: 2,
@@ -44,7 +37,7 @@ class ContentType(Enum):
             ContentType.HEADER_4: 4,
             ContentType.HEADER_5: 5,
             ContentType.HEADER_6: 6,
-            ContentType.HEADER: 1,  # Default to H1 for generic header
+            ContentType.HEADER: 1,
         }
         return header_map.get(self)
 

@@ -1,11 +1,7 @@
-"""
-Main PDF Structure Extractor class
-"""
-
 import time
 from pathlib import Path
 from typing import Dict, Any
-import fitz  # PyMuPDF
+import fitz
 
 from .models import (
     ExtractionConfig, ExtractionResult, PageContent, 
@@ -16,10 +12,8 @@ from .logging_utils import get_logger, pdf_logger
 
 
 class PDFStructureExtractor:
-    """Main class for extracting structured content from PDF files."""
     
     def __init__(self, config: ExtractionConfig = None):
-        """Initialize the extractor with configuration."""
         self.config = config or ExtractionConfig()
         self.page_processor = PageProcessor(
             debug=self.config.verbose,
@@ -27,19 +21,6 @@ class PDFStructureExtractor:
         )
     
     def extract(self, pdf_path: Path) -> Dict[str, Any]:
-        """Extract structured content from a PDF file.
-        
-        Args:
-            pdf_path: Path to the PDF file
-            
-        Returns:
-            Dictionary containing extracted content
-            
-        Raises:
-            ExtractionError: If extraction fails
-            PasswordRequiredError: If PDF requires password
-            UnsupportedPDFError: If PDF format is not supported
-        """
         logger = get_logger('pdf_extractor.extractor')
         start_time = time.time()
         

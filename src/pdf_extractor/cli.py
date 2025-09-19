@@ -1,7 +1,3 @@
-"""
-Command Line Interface for PDF Structure Extractor
-"""
-
 import click
 from pathlib import Path
 import json
@@ -18,10 +14,6 @@ from .logging_utils import configure_logging, get_logger
 @click.group()
 @click.version_option(version="1.0.0")
 def cli():
-    """PDF to JSON Structure Extractor
-    
-    Extract content from PDF files and convert to well-structured JSON format.
-    """
     pass
 
 
@@ -29,25 +21,18 @@ def cli():
 @click.option('--input', '-i', 'input_path', type=click.Path(exists=True, path_type=Path), 
               required=True, help='Input PDF file to process')
 @click.option('--output', '-o', type=click.Path(path_type=Path), 
-              help='Output JSON file path (default: same name as PDF with appropriate extension)')
-@click.option('--password', '-p', type=str,
-              help='Password for encrypted PDF files')
+              help='Output JSON file path')
+@click.option('--password', '-p', type=str, help='Password for encrypted PDF files')
 @click.option('--mode', type=click.Choice(['standard', 'detailed', 'fast']), default='standard',
-              help='Extraction mode: standard (balanced), detailed (comprehensive), fast (quick)')
+              help='Extraction mode')
 @click.option('--format', type=click.Choice(['hierarchical', 'flat', 'raw']), default='hierarchical',
-              help='Output format: hierarchical (structured JSON), flat (simple JSON), raw (direct extraction)')
-@click.option('--preserve-layout', is_flag=True, default=False,
-              help='Preserve spatial layout information in output')
-@click.option('--extract-tables', is_flag=True, default=None,
-              help='Extract tables from PDF (overrides mode default)')
-@click.option('--extract-images', is_flag=True, default=None,
-              help='Extract image metadata and descriptions (overrides mode default)')
-@click.option('--validate-schema', is_flag=True, default=True,
-              help='Validate output against JSON schema (requires jsonschema package)')
-@click.option('--config', '-c', type=click.Path(exists=True, path_type=Path),
-              help='Configuration file path (default: config.yaml in current directory)')
-@click.option('--verbose', '-v', is_flag=True, default=False,
-              help='Enable verbose output')
+              help='Output format')
+@click.option('--preserve-layout', is_flag=True, default=False, help='Preserve spatial layout')
+@click.option('--extract-tables', is_flag=True, default=None, help='Extract tables')
+@click.option('--extract-images', is_flag=True, default=None, help='Extract images')
+@click.option('--validate-schema', is_flag=True, default=True, help='Validate output')
+@click.option('--config', '-c', type=click.Path(exists=True, path_type=Path), help='Configuration file')
+@click.option('--verbose', '-v', is_flag=True, default=False, help='Enable verbose output')
 def extract(input_path: Path, output: Optional[Path], password: Optional[str], mode: str, 
            format: str, preserve_layout: bool, extract_tables: Optional[bool], 
            extract_images: Optional[bool], validate_schema: bool, 

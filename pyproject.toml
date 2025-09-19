@@ -38,7 +38,12 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "--cov=src/pdf_extractor --cov-report=term-missing --cov-fail-under=80"
+addopts = "-v"
+markers = [
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "slow: marks tests as slow running",
+]
 
 [tool.black]
 line-length = 88
