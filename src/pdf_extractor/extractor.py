@@ -11,6 +11,7 @@ from .models import (
     ExtractionConfig, ExtractionResult, PageContent, 
     ExtractionError, PasswordRequiredError, UnsupportedPDFError
 )
+from .page_processor import PageProcessor
 
 
 class PDFStructureExtractor:
@@ -19,6 +20,7 @@ class PDFStructureExtractor:
     def __init__(self, config: ExtractionConfig = None):
         """Initialize the extractor with configuration."""
         self.config = config or ExtractionConfig()
+        self.page_processor = PageProcessor(debug=self.config.verbose)
     
     def extract(self, pdf_path: Path) -> Dict[str, Any]:
         """Extract structured content from a PDF file.
@@ -56,25 +58,16 @@ class PDFStructureExtractor:
                 processing_time=time.time() - start_time
             )
             
-            # Process each page (basic implementation)
+            # Process each page with detailed structure analysis (Task 3)
             for page_num in range(pdf_doc.page_count):
                 page = pdf_doc[page_num]
-                page_content = PageContent(
-                    page_number=page_num + 1,
-                    page_width=page.rect.width,
-                    page_height=page.rect.height,
-                    rotation=page.rotation
-                )
                 
-                # Basic text extraction (will be enhanced in Task 3)
-                text = page.get_text()
-                if text.strip():
-                    from .models import TextBlock, ContentType
-                    text_block = TextBlock(
-                        text=text.strip(),
-                        content_type=ContentType.TEXT
-                    )
-                    page_content.text_blocks.append(text_block)
+                # Use PageProcessor for detailed content extraction
+                page_content = self.page_processor.process_page(page, page_num + 1)
+                
+                # For backward compatibility, also create basic text blocks
+                # from the structured content
+                self._create_legacy_text_blocks(page_content)
                 
                 result.pages.append(page_content)
             
@@ -128,3 +121,22 @@ class PDFStructureExtractor:
             'format': metadata.get('format', ''),
             'encrypted': metadata.get('encryption', None) is not None
         }
+    
+    def _create_legacy_text_blocks(self, page_content: PageContent):
+        """Create legacy TextBlock objects for backward compatibility.
+        
+        Args:
+            page_content: PageContent with detailed content blocks
+        """
+        from .models import TextBlock, ContentType
+        
+        # Convert structured content blocks to simple text blocks
+        for content_block in page_content.content_blocks:
+            if content_block.is_text_block and content_block.text.strip():
+                text_block = TextBlock(
+                    text=content_block.text.strip(),
+                    content_type=ContentType.TEXT,
+                    bbox=content_block.bbox,
+                    confidence=1.0
+                )
+                page_content.text_blocks.append(text_block)

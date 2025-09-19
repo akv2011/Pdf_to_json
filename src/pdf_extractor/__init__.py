@@ -11,5 +11,7 @@ __email__ = "dev@example.com"
 
 from .extractor import PDFStructureExtractor
 from .models import ExtractionConfig
+from .content_classifier import ContentClassifier
+from .text_cleaner import TextCleaner
 
-__all__ = ["PDFStructureExtractor", "ExtractionConfig"]
+__all__ = ["PDFStructureExtractor", "ExtractionConfig", "ContentClassifier", "TextCleaner"]

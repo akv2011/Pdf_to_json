@@ -50,6 +50,84 @@ class BoundingBox:
 
 
 @dataclass
+class FontInfo:
+    """Represents font information for a text span."""
+    font_name: str
+    font_size: float
+    flags: int = 0
+    color: int = 0
+    ascender: Optional[float] = None
+    descender: Optional[float] = None
+    
+    @property
+    def is_bold(self) -> bool:
+        """Check if text is bold using flags."""
+        return bool(self.flags & 16)
+    
+    @property
+    def is_italic(self) -> bool:
+        """Check if text is italic using flags."""
+        return bool(self.flags & 2)
+    
+    @property
+    def is_superscript(self) -> bool:
+        """Check if text is superscript using flags."""
+        return bool(self.flags & 1)
+    
+    @property
+    def is_serif(self) -> bool:
+        """Check if font is serif using flags."""
+        return bool(self.flags & 4)
+
+
+@dataclass
+class TextSpan:
+    """Represents a span of text with consistent formatting."""
+    text: str
+    bbox: BoundingBox
+    font_info: FontInfo
+    origin: tuple = field(default_factory=tuple)  # (x, y) baseline origin
+    
+
+@dataclass
+class TextLine:
+    """Represents a line of text containing multiple spans."""
+    spans: List[TextSpan]
+    bbox: BoundingBox
+    wmode: int = 0  # Writing mode: 0=horizontal, 1=vertical
+    direction: tuple = field(default_factory=lambda: (1, 0))  # (x, y) writing direction
+    
+    @property
+    def text(self) -> str:
+        """Get the full text of the line."""
+        return ''.join(span.text for span in self.spans)
+
+
+@dataclass
+class ContentBlock:
+    """Represents a block of content (text or image) with detailed structure."""
+    block_number: int
+    block_type: int  # 0=text, 1=image
+    bbox: BoundingBox
+    lines: List[TextLine] = field(default_factory=list)
+    
+    @property
+    def text(self) -> str:
+        """Get the full text of the block."""
+        return '\n'.join(line.text for line in self.lines)
+    
+    @property
+    def is_text_block(self) -> bool:
+        """Check if this is a text block."""
+        return self.block_type == 0
+    
+    @property
+    def is_image_block(self) -> bool:
+        """Check if this is an image block."""
+        return self.block_type == 1
+
+
+@dataclass
 class TextBlock:
     """Represents a block of text with metadata."""
     text: str
@@ -131,6 +209,9 @@ class PageContent:
     page_width: Optional[float] = None
     page_height: Optional[float] = None
     rotation: int = 0
+    # Enhanced structured content from get_text('dict')
+    content_blocks: List[ContentBlock] = field(default_factory=list)
+    raw_text_data: Optional[Dict[str, Any]] = None  # Store raw dict for debugging
 
 
 @dataclass
@@ -227,6 +308,64 @@ class ExtractionResult:
                                 "height": img.bbox.height
                             } if img.bbox else None
                         } for img in page.images
+                    ],
+                    "content_blocks": [
+                        {
+                            "block_number": block.block_number,
+                            "block_type": block.block_type,
+                            "is_text": block.is_text_block,
+                            "is_image": block.is_image_block,
+                            "bbox": {
+                                "x0": block.bbox.x0,
+                                "y0": block.bbox.y0,
+                                "x1": block.bbox.x1,
+                                "y1": block.bbox.y1,
+                                "width": block.bbox.width,
+                                "height": block.bbox.height
+                            },
+                            "text": block.text,
+                            "lines": [
+                                {
+                                    "text": line.text,
+                                    "wmode": line.wmode,
+                                    "direction": line.direction,
+                                    "bbox": {
+                                        "x0": line.bbox.x0,
+                                        "y0": line.bbox.y0,
+                                        "x1": line.bbox.x1,
+                                        "y1": line.bbox.y1,
+                                        "width": line.bbox.width,
+                                        "height": line.bbox.height
+                                    },
+                                    "spans": [
+                                        {
+                                            "text": span.text,
+                                            "bbox": {
+                                                "x0": span.bbox.x0,
+                                                "y0": span.bbox.y0,
+                                                "x1": span.bbox.x1,
+                                                "y1": span.bbox.y1,
+                                                "width": span.bbox.width,
+                                                "height": span.bbox.height
+                                            },
+                                            "font": {
+                                                "name": span.font_info.font_name,
+                                                "size": span.font_info.font_size,
+                                                "flags": span.font_info.flags,
+                                                "color": span.font_info.color,
+                                                "is_bold": span.font_info.is_bold,
+                                                "is_italic": span.font_info.is_italic,
+                                                "is_superscript": span.font_info.is_superscript,
+                                                "is_serif": span.font_info.is_serif,
+                                                "ascender": span.font_info.ascender,
+                                                "descender": span.font_info.descender
+                                            },
+                                            "origin": span.origin
+                                        } for span in line.spans
+                                    ]
+                                } for line in block.lines
+                            ]
+                        } for block in page.content_blocks
                     ]
                 } for page in self.pages
             ]

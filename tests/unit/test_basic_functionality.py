@@ -45,13 +45,80 @@ class TestPDFStructureExtractor:
         }
         
         mock_page1 = Mock()
-        mock_page1.get_text.return_value = "Test content page 1"
+        # Mock both get_text() calls - for basic text and for dict structure
+        def mock_get_text_page1(format_type=None, sort=False):
+            if format_type == "dict":
+                return {
+                    'width': 595.0,
+                    'height': 842.0,
+                    'blocks': [
+                        {
+                            'number': 0,
+                            'type': 0,
+                            'bbox': (10, 10, 100, 30),
+                            'lines': [
+                                {
+                                    'wmode': 0,
+                                    'dir': (1, 0),
+                                    'bbox': (10, 10, 100, 30),
+                                    'spans': [
+                                        {
+                                            'text': 'Test content page 1',
+                                            'bbox': (10, 10, 100, 30),
+                                            'font': 'Arial',
+                                            'size': 12.0,
+                                            'flags': 0,
+                                            'color': 0,
+                                            'origin': (10, 25)
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            return "Test content page 1"
+        
+        mock_page1.get_text.side_effect = mock_get_text_page1
         mock_page1.rect.width = 595.0
         mock_page1.rect.height = 842.0
         mock_page1.rotation = 0
         
         mock_page2 = Mock()
-        mock_page2.get_text.return_value = "Test content page 2"
+        def mock_get_text_page2(format_type=None, sort=False):
+            if format_type == "dict":
+                return {
+                    'width': 595.0,
+                    'height': 842.0,
+                    'blocks': [
+                        {
+                            'number': 0,
+                            'type': 0,
+                            'bbox': (10, 40, 100, 60),
+                            'lines': [
+                                {
+                                    'wmode': 0,
+                                    'dir': (1, 0),
+                                    'bbox': (10, 40, 100, 60),
+                                    'spans': [
+                                        {
+                                            'text': 'Test content page 2',
+                                            'bbox': (10, 40, 100, 60),
+                                            'font': 'Arial',
+                                            'size': 12.0,
+                                            'flags': 0,
+                                            'color': 0,
+                                            'origin': (10, 55)
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            return "Test content page 2"
+        
+        mock_page2.get_text.side_effect = mock_get_text_page2
         mock_page2.rect.width = 595.0
         mock_page2.rect.height = 842.0
         mock_page2.rotation = 0
